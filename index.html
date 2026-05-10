@@ -2,14 +2,15 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Adam Video Tester - это тестовый режим для поиска ошибок. Возможен неправильный отчет</title>
+<title>VideoQC — Проверка видеофайла ГИТР</title>
 <style>
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: #f4f6fa; margin: 0; padding: 24px; color: #1a2233;
+    min-height: 100vh;
   }
-  .container { max-width: 1100px; margin: 0 auto; }
+  .container { max-width: 1100px; margin: 0 auto; padding-bottom: 80px; }
   h1 { color: #2b3a67; margin-bottom: 4px; }
   .subtitle { color: #6b7a99; margin-bottom: 24px; }
   .card {
@@ -113,12 +114,146 @@
   .loudness-item .label { font-size: 11px; color: #6b7a99; text-transform: uppercase; letter-spacing: 0.5px; }
   .loudness-item .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
   .loudness-item .desc { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+
+  /* ====== МОДАЛЬНОЕ ОКНО ВЫБОРА ПРЕСЕТА ====== */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.75);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: #fff; border-radius: 16px; max-width: 720px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-header {
+    padding: 24px 28px; border-bottom: 1px solid #eef0f5;
+    background: linear-gradient(135deg, #2b3a67 0%, #4a6cf7 100%);
+    color: #fff; border-radius: 16px 16px 0 0;
+  }
+  .modal-header h2 { margin: 0 0 4px 0; font-size: 22px; }
+  .modal-header p { margin: 0; opacity: 0.9; font-size: 14px; }
+  .modal-body { padding: 24px 28px; }
+  .preset-group { margin-bottom: 24px; }
+  .preset-group h3 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: #6b7a99; margin: 0 0 12px 0;
+  }
+  .preset-card {
+    border: 2px solid #eef0f5; border-radius: 10px; padding: 14px 16px;
+    margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .preset-card:hover {
+    border-color: #4a6cf7; background: #f7f9ff;
+    transform: translateX(2px);
+  }
+  .preset-card .name { font-weight: 600; color: #1a2233; }
+  .preset-card .desc { font-size: 12px; color: #6b7a99; margin-top: 2px; }
+  .preset-card .arrow { color: #4a6cf7; font-size: 18px; }
+  .preset-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    margin-right: 6px;
+  }
+  .preset-tag.master { background: #ede9fe; color: #6d28d9; }
+  .preset-tag.broadcast { background: #dbeafe; color: #1d4ed8; }
+  .preset-tag.uhd { background: #fef3c7; color: #92400e; }
+  .preset-tag.hd { background: #d1fae5; color: #065f46; }
+  .preset-tag.sd { background: #fee2e2; color: #991b1b; }
+
+  /* ====== ИНДИКАТОР ВЫБРАННОГО ПРЕСЕТА ====== */
+  .preset-display {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: #eef2ff; border-radius: 10px;
+    border-left: 4px solid #4a6cf7; margin-bottom: 16px;
+  }
+  .preset-display .info { font-size: 13px; }
+  .preset-display .info strong { color: #2b3a67; font-size: 15px; }
+  .preset-display button {
+    background: #4a6cf7; color: #fff; border: none;
+    padding: 8px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; font-weight: 500;
+  }
+  .preset-display button:hover { background: #3a5ce7; }
+
+  /* ====== БЛОК С ГАЙДОМ ОТК (ПРИ ОШИБКЕ) ====== */
+  .otk-help {
+    margin-top: 16px; padding: 20px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 12px; border-left: 4px solid #f59e0b;
+  }
+  .otk-help h3 { margin: 0 0 8px 0; color: #78350f; font-size: 16px; }
+  .otk-help p { margin: 0 0 12px 0; color: #78350f; font-size: 14px; }
+  .otk-help .yt-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #dc2626; color: #fff; text-decoration: none;
+    padding: 10px 18px; border-radius: 8px; font-weight: 600;
+    transition: background 0.15s;
+  }
+  .otk-help .yt-link:hover { background: #b91c1c; }
+  .otk-help .yt-link svg { width: 20px; height: 20px; }
+
+  /* ====== TELEGRAM КОНТАКТ В УГЛУ ====== */
+  .tg-contact {
+    position: fixed; right: 20px; bottom: 20px;
+    background: #fff; border-radius: 50px; padding: 10px 18px 10px 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none; color: #1a2233;
+    font-size: 14px; font-weight: 500;
+    transition: all 0.2s; z-index: 100;
+    border: 1px solid #e5e7eb;
+  }
+  .tg-contact:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+    border-color: #229ED9;
+  }
+  .tg-contact .tg-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #2AABEE 0%, #229ED9 100%);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  }
+  .tg-contact .tg-icon svg { width: 18px; height: 18px; fill: #fff; }
+  .tg-contact .tg-text { display: flex; flex-direction: column; line-height: 1.2; }
+  .tg-contact .tg-text small { color: #6b7a99; font-size: 11px; font-weight: normal; }
+
+  @media (max-width: 600px) {
+    .tg-contact { right: 12px; bottom: 12px; padding: 8px 14px 8px 10px; font-size: 12px; }
+    .tg-contact .tg-icon { width: 28px; height: 28px; }
+  }
 </style>
 </head>
 <body>
+
+<!-- ====== МОДАЛЬНОЕ ОКНО ВЫБОРА ТИПА РАБОТЫ ====== -->
+<div class="modal-overlay" id="presetModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🎬 Выберите тип работы</h2>
+      <p>Параметры проверки настроятся автоматически по нормативу ГИТР (раздел 7.7)</p>
+    </div>
+    <div class="modal-body" id="presetList">
+      <!-- Список пресетов генерируется JS -->
+    </div>
+  </div>
+</div>
+
 <div class="container">
   <h1>🎬 VideoQC</h1>
-  <p class="subtitle">Анализ метаданных + громкость по EBU R128 / ITU-R BS.1770-4</p>
+  <p class="subtitle">Проверка видеофайла по стандартам ГИТР + EBU R128 / ITU-R BS.1770-4</p>
+
+  <div class="preset-display" id="presetDisplay" style="display:none">
+    <div class="info">
+      <strong id="presetName">—</strong><br>
+      <span id="presetDesc" style="color:#6b7a99">—</span>
+    </div>
+    <button onclick="showPresetModal()">Сменить</button>
+  </div>
 
   <div class="card">
     <label class="drop-zone disabled" id="dropZone">
@@ -144,11 +279,11 @@
 
   <div class="card">
     <details>
-      <summary>⚙️ Ожидаемые параметры</summary>
+      <summary>⚙️ Ожидаемые параметры (можно редактировать вручную)</summary>
       <div style="margin-top:16px">
         <div class="section-title">Видео</div>
         <div class="config-row"><label>Контейнер (MOV/MP4/MKV/AVI/MXF)</label><input id="cfgContainer" value="MOV"></div>
-        <div class="config-row"><label>Видеокодек</label><input id="cfgVCodec" value="H264,AVC,PRORES,DNxHD"></div>
+        <div class="config-row"><label>Видеокодек</label><input id="cfgVCodec" value="H264,AVC,PRORES,DNxHD,DNxHR"></div>
         <div class="config-row"><label>Разрешение</label><input id="cfgResolution" value="3840x2160"></div>
         <div class="config-row"><label>FPS</label><input id="cfgFps" value="25"></div>
         <div class="config-row"><label>Соотношение сторон</label><input id="cfgAspect" value="16:9"></div>
@@ -157,9 +292,9 @@
         <div class="config-row"><label>Битовая глубина видео</label><input id="cfgVBitDepth" value="8"></div>
         <div class="config-row"><label>Количество видеодорожек</label><input id="cfgVTracks" value="1"></div>
 
-        <div class="section-title">Аудио (метаданные)</div>
-        <div class="config-row"><label>Аудиокодек</label><input id="cfgACodec" value="PCM"></div>
-        <div class="config-row"><label>Битрейт аудио, кбит/с (мин)</label><input id="cfgABitrate" value="1000"></div>
+        <div class="section-title">Аудио</div>
+        <div class="config-row"><label>Аудиокодек</label><input id="cfgACodec" value="PCM,AAC"></div>
+        <div class="config-row"><label>Битрейт аудио, кбит/с (мин)</label><input id="cfgABitrate" value="128"></div>
         <div class="config-row"><label>Каналов в файле</label><input id="cfgAChans" value="2"></div>
         <div class="config-row"><label>Частота дискретизации, Гц</label><input id="cfgASampleRate" value="48000"></div>
         <div class="config-row"><label>Битовая глубина аудио</label><input id="cfgABitDepth" value="24"></div>
@@ -179,9 +314,486 @@
   <div id="results"></div>
 </div>
 
+<!-- TELEGRAM КОНТАКТ -->
+<a href="https://t.me/Adam1TBC" target="_blank" rel="noopener" class="tg-contact" title="Связаться с автором проекта">
+  <div class="tg-icon">
+    <svg viewBox="0 0 24 24"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+  </div>
+  <div class="tg-text">
+    <span>@adam1tbc</span>
+    <small>Автор проекта</small>
+  </div>
+</a>
+
 <script src="https://unpkg.com/mediainfo.js@0.1.9/dist/mediainfo.min.js"></script>
 
 <script>
+// ============================================================
+//  ПРЕСЕТЫ ГИТР (на основе таблицы 7.7)
+// ============================================================
+// ============================================================
+//  ПРЕСЕТЫ ГИТР (на основе таблиц 5.6 + 7.7)
+//  Звук: LUFS -23 ±0.5, TP ≤ -1 dBTP для всех
+//  LRA: 1 курс = ≤18 LU, 2-5 док = 5-10 LU, 2-5 игр = 12-16 LU
+// ============================================================
+const PRESETS = {
+  // ============== МАСТЕР-ФАЙЛЫ ==============
+  master_hd_1: {
+    name: 'Мастер-файл HD (1 курс)',
+    desc: 'ProRes 422 / DNxHR HQX, 1920×1080, 25p · LRA ≤ 18 LU',
+    type: 'master',
+    quality: 'hd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'PRORES,DNxHR,DNxHD',
+      cfgResolution: '1920x1080',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '100..1000',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM',
+      cfgABitrate: '1000',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '0..18',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  master_hd_2_5_doc: {
+    name: 'Мастер-файл HD (2-5 курс, документальный)',
+    desc: 'ProRes 422 / DNxHR HQX, 1920×1080, 25p · LRA 5-10 LU',
+    type: 'master',
+    quality: 'hd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'PRORES,DNxHR,DNxHD',
+      cfgResolution: '1920x1080',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '100..1000',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM',
+      cfgABitrate: '1000',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '5..10',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  master_hd_2_5_fic: {
+    name: 'Мастер-файл HD (2-5 курс, игровой)',
+    desc: 'ProRes 422 / DNxHR HQX, 1920×1080, 25p · LRA 12-16 LU',
+    type: 'master',
+    quality: 'hd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'PRORES,DNxHR,DNxHD',
+      cfgResolution: '1920x1080',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '100..1000',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM',
+      cfgABitrate: '1000',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '12..16',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  master_uhd_2_5_doc: {
+    name: 'Мастер-файл UHD (2-5 курс, документальный)',
+    desc: 'ProRes 422 / DNxHR HQX, 3840×2160, 25p · LRA 5-10 LU',
+    type: 'master',
+    quality: 'uhd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'PRORES,DNxHR,DNxHD',
+      cfgResolution: '3840x2160',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '400..2000',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM',
+      cfgABitrate: '1000',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '5..10',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  master_uhd_2_5_fic: {
+    name: 'Мастер-файл UHD (2-5 курс, игровой)',
+    desc: 'ProRes 422 / DNxHR HQX, 3840×2160, 25p · LRA 12-16 LU',
+    type: 'master',
+    quality: 'uhd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'PRORES,DNxHR,DNxHD',
+      cfgResolution: '3840x2160',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '400..2000',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM',
+      cfgABitrate: '1000',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '12..16',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+
+  // ============== МАСТЕР-КОПИИ ==============
+  copy_hd_1: {
+    name: 'Мастер-копия HD (1 курс)',
+    desc: 'h.264 .mov, 1920×1080, 25p, 10-14 Мбит/с · LRA ≤ 18 LU',
+    type: 'broadcast',
+    quality: 'hd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '1920x1080',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '10..14',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM,AAC',
+      cfgABitrate: '128',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '0..18',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  copy_hd_2_3_doc: {
+    name: 'Мастер-копия HD (2-3 курс, документальный)',
+    desc: 'h.264 .mov, 1920×1080, 25p, 30-35 Мбит/с · LRA 5-10 LU',
+    type: 'broadcast',
+    quality: 'hd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '1920x1080',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '30..35',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM,AAC',
+      cfgABitrate: '128',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '5..10',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  copy_hd_2_3_fic: {
+    name: 'Мастер-копия HD (2-3 курс, игровой)',
+    desc: 'h.264 .mov, 1920×1080, 25p, 30-35 Мбит/с · LRA 12-16 LU',
+    type: 'broadcast',
+    quality: 'hd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '1920x1080',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '30..35',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM,AAC',
+      cfgABitrate: '128',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '12..16',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  copy_sd_4_5_doc: {
+    name: 'Мастер-копия SD (4-5 курс, документальный)',
+    desc: '.mp4, 640×480, 25p, h.264, 1 Мбит/с, AAC · LRA 5-10 LU',
+    type: 'broadcast',
+    quality: 'sd',
+    config: {
+      cfgContainer: 'MP4',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '640x480',
+      cfgFps: '25',
+      cfgAspect: '4:3',
+      cfgVBitrate: '0.8..1.2',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'AAC',
+      cfgABitrate: '120',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '16',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '5..10',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  copy_sd_4_5_fic: {
+    name: 'Мастер-копия SD (4-5 курс, игровой)',
+    desc: '.mp4, 640×480, 25p, h.264, 1 Мбит/с, AAC · LRA 12-16 LU',
+    type: 'broadcast',
+    quality: 'sd',
+    config: {
+      cfgContainer: 'MP4',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '640x480',
+      cfgFps: '25',
+      cfgAspect: '4:3',
+      cfgVBitrate: '0.8..1.2',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'AAC',
+      cfgABitrate: '120',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '16',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '12..16',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  copy_hd_4_5_doc: {
+    name: 'Мастер-копия HD (4-5 курс, документальный)',
+    desc: 'h.264 .mov, 1920×1080, 25p, 10-12 Мбит/с · LRA 5-10 LU',
+    type: 'broadcast',
+    quality: 'hd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '1920x1080',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '10..12',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM,AAC',
+      cfgABitrate: '128',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '5..10',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  copy_hd_4_5_fic: {
+    name: 'Мастер-копия HD (4-5 курс, игровой)',
+    desc: 'h.264 .mov, 1920×1080, 25p, 10-12 Мбит/с · LRA 12-16 LU',
+    type: 'broadcast',
+    quality: 'hd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '1920x1080',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '10..12',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM,AAC',
+      cfgABitrate: '128',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '12..16',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  copy_uhd_4_5_doc: {
+    name: 'Мастер-копия UHD (4-5 курс, документальный)',
+    desc: 'h.264 .mov, 3840×2160, 25p, 90-100 Мбит/с · LRA 5-10 LU',
+    type: 'broadcast',
+    quality: 'uhd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '3840x2160',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '90..100',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM,AAC',
+      cfgABitrate: '128',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '5..10',
+      cfgTimecode: '00:59:52:00'
+    }
+  },
+  copy_uhd_4_5_fic: {
+    name: 'Мастер-копия UHD (4-5 курс, игровой)',
+    desc: 'h.264 .mov, 3840×2160, 25p, 90-100 Мбит/с · LRA 12-16 LU',
+    type: 'broadcast',
+    quality: 'uhd',
+    config: {
+      cfgContainer: 'MOV',
+      cfgVCodec: 'H264,AVC',
+      cfgResolution: '3840x2160',
+      cfgFps: '25',
+      cfgAspect: '16:9',
+      cfgVBitrate: '90..100',
+      cfgScan: 'Progressive',
+      cfgVBitDepth: '8',
+      cfgVTracks: '1',
+      cfgACodec: 'PCM,AAC',
+      cfgABitrate: '128',
+      cfgAChans: '2',
+      cfgASampleRate: '48000',
+      cfgABitDepth: '24',
+      cfgLufs: '-23',
+      cfgLufsTol: '0.5',
+      cfgTruePeak: '-1',
+      cfgLra: '12..16',
+      cfgTimecode: '00:59:52:00'
+    }
+  }
+};
+
+
+// ============================================================
+//  МОДАЛЬНОЕ ОКНО ВЫБОРА ПРЕСЕТА
+// ============================================================
+function buildPresetList() {
+  const list = document.getElementById('presetList');
+  const masters = Object.entries(PRESETS).filter(([k,v]) => v.type === 'master');
+  const broadcasts = Object.entries(PRESETS).filter(([k,v]) => v.type === 'broadcast');
+
+  let html = `
+    <div class="preset-group">
+      <h3>📦 Мастер-файлы (для домашнего архива)</h3>
+      ${masters.map(([k, p]) => renderPresetCard(k, p)).join('')}
+    </div>
+    <div class="preset-group">
+      <h3>📡 Мастер-копии (для личного кабинета ГИТР)</h3>
+      ${broadcasts.map(([k, p]) => renderPresetCard(k, p)).join('')}
+    </div>
+  `;
+  list.innerHTML = html;
+
+  // Назначаем обработчики
+  list.querySelectorAll('.preset-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const key = card.dataset.key;
+      applyPreset(key);
+      hidePresetModal();
+    });
+  });
+}
+
+function renderPresetCard(key, preset) {
+  const tagType = preset.type === 'master' ? 'master' : 'broadcast';
+  const tagLabel = preset.type === 'master' ? 'Мастер' : 'Копия';
+  const qualityTag = preset.quality.toUpperCase();
+  return `
+    <div class="preset-card" data-key="${key}">
+      <div>
+        <div class="name">
+          <span class="preset-tag ${tagType}">${tagLabel}</span>
+          <span class="preset-tag ${preset.quality}">${qualityTag}</span>
+          ${preset.name}
+        </div>
+        <div class="desc">${preset.desc}</div>
+      </div>
+      <div class="arrow">→</div>
+    </div>
+  `;
+}
+
+function applyPreset(key) {
+  const preset = PRESETS[key];
+  if (!preset) return;
+  for (const [field, value] of Object.entries(preset.config)) {
+    const el = document.getElementById(field);
+    if (el) el.value = value;
+  }
+  // Сохраняем выбранный пресет
+  window.__currentPreset = preset;
+  document.getElementById('presetName').textContent = preset.name;
+  document.getElementById('presetDesc').textContent = preset.desc;
+  document.getElementById('presetDisplay').style.display = 'flex';
+}
+
+function showPresetModal() {
+  document.getElementById('presetModal').classList.remove('hidden');
+}
+function hidePresetModal() {
+  document.getElementById('presetModal').classList.add('hidden');
+}
+
+// ============================================================
+//  ОСНОВНОЙ КОД (из предыдущей версии)
+// ============================================================
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const fileInfo = document.getElementById('fileInfo');
@@ -205,6 +817,10 @@ function checkLibrary() {
 }
 
 window.addEventListener('load', () => {
+  // Показываем модальное окно выбора пресета при загрузке
+  buildPresetList();
+  showPresetModal();
+
   setTimeout(() => {
     if (!checkLibrary()) {
       statusDot.classList.add('error');
@@ -236,8 +852,6 @@ async function detectRealContainer(file) {
   try {
     const buf = await file.slice(0, 64).arrayBuffer();
     const bytes = new Uint8Array(buf);
-
-    // Ищем 'ftyp' (4 байта ASCII) в первых 32 байтах
     let ftypOffset = -1;
     for (let i = 0; i < 28; i++) {
       if (bytes[i] === 0x66 && bytes[i+1] === 0x74 && bytes[i+2] === 0x79 && bytes[i+3] === 0x70) {
@@ -245,46 +859,34 @@ async function detectRealContainer(file) {
         break;
       }
     }
-
     if (ftypOffset === -1) {
-      // Возможно MOV без ftyp (старый формат) — проверяем сигнатуру moov/mdat/wide
       const start = String.fromCharCode(...bytes.slice(4, 8));
       if (['moov','mdat','wide','free','skip','pnot'].includes(start)) {
         return { brand: 'qt  ', detected: 'MOV (QuickTime, без ftyp)' };
       }
-      // RIFF (AVI)
       if (bytes[0]===0x52 && bytes[1]===0x49 && bytes[2]===0x46 && bytes[3]===0x46) {
         return { brand: 'AVI ', detected: 'AVI' };
       }
-      // EBML (MKV)
       if (bytes[0]===0x1A && bytes[1]===0x45 && bytes[2]===0xDF && bytes[3]===0xA3) {
         return { brand: 'MKV ', detected: 'MKV' };
       }
       return { brand: '????', detected: 'Неизвестный' };
     }
-
-    // Major brand — следующие 4 байта после 'ftyp'
     const majorBrand = String.fromCharCode(
       bytes[ftypOffset+4], bytes[ftypOffset+5], bytes[ftypOffset+6], bytes[ftypOffset+7]
     );
-
-    // Собираем все совместимые brand'ы (compatible_brands)
     const compatibleBrands = [];
     for (let i = ftypOffset + 12; i < bytes.length - 3; i += 4) {
       const b = String.fromCharCode(bytes[i], bytes[i+1], bytes[i+2], bytes[i+3]);
       if (/^[a-zA-Z0-9 ]{4}$/.test(b)) compatibleBrands.push(b);
       else break;
     }
-
-    // QuickTime brand
     if (majorBrand === 'qt  ' || compatibleBrands.includes('qt  ')) {
       return { brand: majorBrand, compatible: compatibleBrands, detected: 'MOV (QuickTime)' };
     }
-    // MP4 brands
     if (['mp41','mp42','isom','iso2','iso4','iso5','iso6','avc1','dash','msnv','M4V '].includes(majorBrand)) {
       return { brand: majorBrand, compatible: compatibleBrands, detected: 'MP4' };
     }
-    // 3GP
     if (majorBrand.startsWith('3g')) {
       return { brand: majorBrand, compatible: compatibleBrands, detected: '3GP' };
     }
@@ -295,22 +897,13 @@ async function detectRealContainer(file) {
 }
 
 // ============================================================
-//  EBU R128 / ITU-R BS.1770-4 — РЕАЛИЗАЦИЯ
+//  EBU R128 / ITU-R BS.1770-4
 // ============================================================
-
-// K-фильтр (двухкаскадный): pre-filter + RLB-фильтр (см. BS.1770-4, Table 1, 2)
-// Коэффициенты пересчитаны для произвольной частоты дискретизации
 function createKFilter(sampleRate) {
-  // === Stage 1: Pre-filter (high-shelf, +4 dB at high freq) ===
-  // Reference fs=48000: b=[1.53512485958697, -2.69169618940638, 1.19839281085285], a=[1, -1.69065929318241, 0.73248077421585]
   const fs = sampleRate;
-
-  // Bilinear transform invariant — для других fs используем аналоговый прототип
-  // Pre-filter: high-shelf at ~1681 Hz, Q≈0.7071, gain +3.999 dB
   const f0_pre = 1681.974450955533;
   const Q_pre = 0.7071752369554196;
   const G_pre = 3.999843853973347;
-
   const K_pre = Math.tan(Math.PI * f0_pre / fs);
   const Vh_pre = Math.pow(10, G_pre / 20);
   const Vb_pre = Math.pow(Vh_pre, 0.4996667741545416);
@@ -320,8 +913,6 @@ function createKFilter(sampleRate) {
   const pre_b2 = (Vh_pre - Vb_pre*K_pre/Q_pre + K_pre*K_pre) / a0_pre;
   const pre_a1 = 2*(K_pre*K_pre - 1) / a0_pre;
   const pre_a2 = (1 - K_pre/Q_pre + K_pre*K_pre) / a0_pre;
-
-  // === Stage 2: RLB-filter (high-pass, fc≈38.13 Hz, Q≈0.5) ===
   const f0_rlb = 38.13547087602444;
   const Q_rlb = 0.5003270373238773;
   const K_rlb = Math.tan(Math.PI * f0_rlb / fs);
@@ -331,20 +922,16 @@ function createKFilter(sampleRate) {
   const rlb_b2 = 1 / a0_rlb;
   const rlb_a1 = 2*(K_rlb*K_rlb - 1) / a0_rlb;
   const rlb_a2 = (1 - K_rlb/Q_rlb + K_rlb*K_rlb) / a0_rlb;
-
   return {
     apply(input) {
       const out = new Float32Array(input.length);
-      let x1=0, x2=0, y1=0, y2=0;       // pre-filter state
-      let x1b=0, x2b=0, y1b=0, y2b=0;   // RLB-filter state
-
+      let x1=0, x2=0, y1=0, y2=0;
+      let x1b=0, x2b=0, y1b=0, y2b=0;
       for (let i = 0; i < input.length; i++) {
         const x = input[i];
-        // Stage 1
         const y = pre_b0*x + pre_b1*x1 + pre_b2*x2 - pre_a1*y1 - pre_a2*y2;
         x2 = x1; x1 = x;
         y2 = y1; y1 = y;
-        // Stage 2
         const z = rlb_b0*y + rlb_b1*x1b + rlb_b2*x2b - rlb_a1*y1b - rlb_a2*y2b;
         x2b = x1b; x1b = y;
         y2b = y1b; y1b = z;
@@ -355,17 +942,14 @@ function createKFilter(sampleRate) {
   };
 }
 
-// Веса каналов по BS.1770-4 (для stereo: L=R=1.0)
-const CHANNEL_WEIGHTS = { 0: 1.0, 1: 1.0, 2: 1.0, 3: 1.41, 4: 1.41 }; // L,R,C,Ls,Rs
+const CHANNEL_WEIGHTS = { 0: 1.0, 1: 1.0, 2: 1.0, 3: 1.41, 4: 1.41 };
 
-// Вычисление mean square по блоку
 function meanSquare(samples) {
   let sum = 0;
   for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
   return sum / samples.length;
 }
 
-// Громкость блока: L = -0.691 + 10*log10(sum_channels(G * mean_square))
 function blockLoudness(channelMS, weights) {
   let sum = 0;
   for (let i = 0; i < channelMS.length; i++) {
@@ -375,13 +959,10 @@ function blockLoudness(channelMS, weights) {
   return -0.691 + 10 * Math.log10(sum);
 }
 
-// Основная функция расчёта EBU R128 параметров
 async function computeEBUR128(audioBuffer, onProgress) {
   const sr = audioBuffer.sampleRate;
   const nch = audioBuffer.numberOfChannels;
   const length = audioBuffer.length;
-
-  // Применяем K-фильтр к каждому каналу
   const filter = createKFilter(sr);
   const filteredChannels = [];
   const weights = [];
@@ -390,12 +971,9 @@ async function computeEBUR128(audioBuffer, onProgress) {
     weights.push(CHANNEL_WEIGHTS[ch] !== undefined ? CHANNEL_WEIGHTS[ch] : 1.0);
   }
   if (onProgress) onProgress(0.3);
-
-  // === Momentary loudness (400 ms блоки, 75% overlap = шаг 100 ms) ===
   const blockSize = Math.round(0.4 * sr);
   const stepSize = Math.round(0.1 * sr);
   const momentaryBlocks = [];
-
   for (let start = 0; start + blockSize <= length; start += stepSize) {
     const channelMS = [];
     for (let ch = 0; ch < nch; ch++) {
@@ -405,30 +983,19 @@ async function computeEBUR128(audioBuffer, onProgress) {
     momentaryBlocks.push({ ms: channelMS, loudness: blockLoudness(channelMS, weights) });
   }
   if (onProgress) onProgress(0.5);
-
-  // === Integrated loudness with absolute & relative gating ===
-  // 1) Absolute gate -70 LUFS
   const absoluteGated = momentaryBlocks.filter(b => b.loudness >= -70);
-
   if (absoluteGated.length === 0) {
-    return {
-      integrated: -Infinity, momentaryMax: -Infinity, shortTermMax: -Infinity,
-      lra: 0, truePeak: -Infinity, sampleRate: sr, channels: nch
-    };
+    return { integrated: -Infinity, momentaryMax: -Infinity, shortTermMax: -Infinity,
+      lra: 0, truePeak: -Infinity, sampleRate: sr, channels: nch };
   }
-
-  // 2) Среднее по каналам после absolute gate
   const meanChannelMS_abs = new Array(nch).fill(0);
   for (const b of absoluteGated) {
     for (let ch = 0; ch < nch; ch++) meanChannelMS_abs[ch] += b.ms[ch];
   }
   for (let ch = 0; ch < nch; ch++) meanChannelMS_abs[ch] /= absoluteGated.length;
   const ungatedLoudness = blockLoudness(meanChannelMS_abs, weights);
-
-  // 3) Relative gate = ungatedLoudness - 10 LU
   const relativeThreshold = ungatedLoudness - 10;
   const relativeGated = absoluteGated.filter(b => b.loudness >= relativeThreshold);
-
   let integrated;
   if (relativeGated.length === 0) {
     integrated = ungatedLoudness;
@@ -441,8 +1008,6 @@ async function computeEBUR128(audioBuffer, onProgress) {
     integrated = blockLoudness(meanChannelMS_rel, weights);
   }
   if (onProgress) onProgress(0.7);
-
-  // === Short-term loudness (3 сек блоки, шаг 100 ms) ===
   const stBlockSize = Math.round(3.0 * sr);
   const shortTermLoudness = [];
   for (let start = 0; start + stBlockSize <= length; start += stepSize) {
@@ -455,8 +1020,6 @@ async function computeEBUR128(audioBuffer, onProgress) {
   }
   const shortTermMax = shortTermLoudness.length ? Math.max(...shortTermLoudness) : -Infinity;
   const momentaryMax = Math.max(...momentaryBlocks.map(b => b.loudness));
-
-  // === LRA (EBU 3342): абсолютный гейт -70 LUFS, относительный -20 LU, 10-95 percentile ===
   const stAbsGated = shortTermLoudness.filter(l => l >= -70);
   let lra = 0;
   if (stAbsGated.length > 0) {
@@ -470,18 +1033,13 @@ async function computeEBUR128(audioBuffer, onProgress) {
     }
   }
   if (onProgress) onProgress(0.85);
-
-  // === True Peak (4× oversampling — линейная интерполяция как упрощение,
-  //     полноценный FIR из BS.1770-4 Annex 2 даёт ~0.1 dB точнее) ===
   let truePeak = 0;
   for (let ch = 0; ch < nch; ch++) {
     const data = audioBuffer.getChannelData(ch);
-    // Простой 4x oversampling через линейную интерполяцию + поиск максимума
     let prev = 0;
     for (let i = 0; i < data.length; i++) {
       const cur = Math.abs(data[i]);
       if (cur > truePeak) truePeak = cur;
-      // межсэмпловые точки
       if (i > 0) {
         for (let k = 1; k < 4; k++) {
           const interp = Math.abs(prev + (data[i] - prev) * (k/4));
@@ -493,44 +1051,29 @@ async function computeEBUR128(audioBuffer, onProgress) {
   }
   const truePeakDB = truePeak > 0 ? 20 * Math.log10(truePeak) : -Infinity;
   if (onProgress) onProgress(1.0);
-
   return {
-    integrated,
-    momentaryMax,
-    shortTermMax,
-    lra,
-    truePeak: truePeakDB,
-    sampleRate: sr,
-    channels: nch
+    integrated, momentaryMax, shortTermMax, lra,
+    truePeak: truePeakDB, sampleRate: sr, channels: nch
   };
 }
 
-// ============================================================
-//  ОСНОВНАЯ ФУНКЦИЯ ОБРАБОТКИ ФАЙЛА
-// ============================================================
 async function handleFile(file) {
   if (typeof MediaInfo !== 'function') {
     alert('Библиотека MediaInfo не загружена. Обновите страницу (Ctrl+F5).');
     return;
   }
-
   fileInfo.textContent = `Файл: ${file.name} (${(file.size/1024/1024).toFixed(2)} МБ)`;
   results.innerHTML = '';
   progress.style.display = 'block';
   progressBar.style.width = '5%';
 
-  let metadata = null;
-  let containerInfo = null;
-  let loudness = null;
-  let loudnessError = null;
+  let metadata = null, containerInfo = null, loudness = null, loudnessError = null;
 
   try {
-    // === 1. Определение реального контейнера через ftyp ===
     statusText.textContent = 'Определение типа контейнера...';
     containerInfo = await detectRealContainer(file);
     progressBar.style.width = '10%';
 
-    // === 2. MediaInfo для остальных метаданных ===
     statusText.textContent = 'Чтение метаданных...';
     const mediainfo = await new Promise((resolve, reject) => {
       try {
@@ -540,7 +1083,6 @@ async function handleFile(file) {
         }, mi => resolve(mi));
       } catch (err) { reject(err); }
     });
-
     const getSize = () => file.size;
     const readChunk = (chunkSize, offset) => new Promise((res, rej) => {
       const r = new FileReader();
@@ -548,53 +1090,43 @@ async function handleFile(file) {
       r.onerror = rej;
       r.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
     });
-
     metadata = await mediainfo.analyzeData(getSize, readChunk);
     if (mediainfo.close) mediainfo.close();
     progressBar.style.width = '25%';
 
-    // === 3. EBU R128 анализ (если включен) ===
     if (enableLoudness.checked) {
       try {
         statusText.textContent = 'Декодирование аудио...';
         const arrayBuffer = await file.arrayBuffer();
-
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioCtx();
-
         let audioBuffer;
         try {
           audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
         } catch (decodeErr) {
-          throw new Error(`Браузер не может декодировать аудио из этого файла. Это часто бывает с PCM в MOV-контейнере или с экзотическими кодеками. Попробуйте перекодировать файл в MP4/AAC. (${decodeErr.message})`);
+          throw new Error(`Браузер не может декодировать аудио. Это часто бывает с PCM в MOV. (${decodeErr.message})`);
         }
-
         progressBar.style.width = '50%';
         statusText.textContent = 'Расчёт EBU R128 / ITU-R BS.1770...';
-
         loudness = await computeEBUR128(audioBuffer, (p) => {
           progressBar.style.width = (50 + p * 45) + '%';
         });
-
         ctx.close();
       } catch (e) {
         loudnessError = e.message;
         console.error('Loudness error:', e);
       }
     }
-
     progressBar.style.width = '95%';
     statusText.textContent = 'Формирование отчёта...';
-
     renderResults(metadata, file, containerInfo, loudness, loudnessError);
-
     progressBar.style.width = '100%';
-    statusText.textContent = 'Готов к работе. Метаданные + EBU R128 через Web Audio API.';
+    statusText.textContent = 'Готово.';
     setTimeout(() => progress.style.display = 'none', 500);
   } catch (e) {
-    results.innerHTML = `<div class="card"><strong style="color:#dc2626">Ошибка анализа:</strong> ${e.message}</div>`;
+    results.innerHTML = `<div class="card"><strong style="color:#dc2626">Ошибка анализа:</strong> ${e.message}</div>${renderOTKHelp()}`;
     progress.style.display = 'none';
-    statusText.textContent = 'Произошла ошибка. См. консоль (F12).';
+    statusText.textContent = 'Ошибка. Подробности в консоли (F12).';
     console.error(e);
   }
 }
@@ -604,6 +1136,22 @@ function parseList(s) { return s.split(',').map(x=>x.trim().toUpperCase()).filte
 function parseRange(s) {
   const m = s.split('..').map(x=>parseFloat(x.trim()));
   return { min: m[0], max: m.length > 1 ? m[1] : Infinity };
+}
+
+// ============================================================
+//  БЛОК С ГАЙДОМ ОТК (показывается при ошибках/провалах)
+// ============================================================
+function renderOTKHelp() {
+  return `
+    <div class="otk-help">
+      <h3>📺 Не прошли проверку?</h3>
+      <p>Автор проекта <strong>@adam1tbc</strong> подготовил подробный гайд по отделу технического контроля (ОТК) — там разобраны типичные ошибки и как их исправить:</p>
+      <a href="https://www.youtube.com/watch?v=7a1TwFbapz0" target="_blank" rel="noopener" class="yt-link">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+        Смотреть гайд по ОТК на YouTube
+      </a>
+    </div>
+  `;
 }
 
 function renderResults(data, file, containerInfo, loudness, loudnessError) {
@@ -616,18 +1164,12 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
   const audioTracks = tracks.filter(t => t['@type'] === 'Audio');
 
   const tests = [];
-  const add = (cat, name, status, exp, act, note='') =>
-    tests.push({ cat, name, status, exp, act, note });
+  const add = (cat, name, status, exp, act, note='') => tests.push({ cat, name, status, exp, act, note });
 
-  // ===== Контейнер (через ftyp + MediaInfo) =====
+  // Контейнер
   const containerExpected = getCfg('cfgContainer').toUpperCase();
   const detectedFromFtyp = (containerInfo?.detected || '').toUpperCase();
-  const formatStr = (general?.Format || '').toUpperCase();
-
-  // Используем результат ftyp как приоритетный источник
-  let containerOk = false;
-  let containerActual = '—';
-
+  let containerOk = false, containerActual = '—';
   if (detectedFromFtyp.includes('QUICKTIME') || detectedFromFtyp.includes('MOV')) {
     containerActual = `MOV (QuickTime, brand: ${containerInfo.brand.trim()})`;
     containerOk = containerExpected === 'MOV';
@@ -635,24 +1177,19 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
     containerActual = `MP4 (brand: ${containerInfo.brand.trim()})`;
     containerOk = containerExpected === 'MP4';
   } else if (detectedFromFtyp === 'AVI') {
-    containerActual = 'AVI';
-    containerOk = containerExpected === 'AVI';
+    containerActual = 'AVI'; containerOk = containerExpected === 'AVI';
   } else if (detectedFromFtyp === 'MKV') {
-    containerActual = 'MKV';
-    containerOk = containerExpected === 'MKV';
+    containerActual = 'MKV'; containerOk = containerExpected === 'MKV';
   } else {
     containerActual = `${containerInfo?.detected || general?.Format || '?'}`;
-    containerOk = formatStr.includes(containerExpected);
+    containerOk = (general?.Format || '').toUpperCase().includes(containerExpected);
   }
-
   add('Контейнер', 'Профиль формата', containerOk ? 'pass' : 'fail',
       containerExpected, containerActual,
       `MediaInfo Format: "${general?.Format || '—'}", ftyp brand: "${containerInfo?.brand || '—'}"`);
+  add('Контейнер', 'Целостность контейнера', 'pass', 'Без ошибок', 'Файл успешно прочитан');
 
-  add('Контейнер', 'Целостность контейнера', 'pass',
-      'Без ошибок', 'Файл успешно прочитан');
-
-  // ===== Видео =====
+  // Видео
   if (video) {
     const codecsExp = parseList(getCfg('cfgVCodec'));
     const vCodec = (video.Format || '').toUpperCase().replace(/[\s.\-_]/g,'');
@@ -660,18 +1197,13 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
       const cc = c.replace(/[\s.\-_]/g,'');
       return vCodec.includes(cc) || cc.includes(vCodec);
     });
-    add('Видео', 'Видеокодек', codecOk ? 'pass' : 'fail',
-        codecsExp.join(', '), video.Format || '—');
-
+    add('Видео', 'Видеокодек', codecOk ? 'pass' : 'fail', codecsExp.join(', '), video.Format || '—');
     const resExp = getCfg('cfgResolution');
     const actRes = `${video.Width}x${video.Height}`;
     add('Видео', 'Разрешение', actRes === resExp ? 'pass' : 'fail', resExp, actRes);
-
     const fpsExp = parseFloat(getCfg('cfgFps'));
     const fpsAct = parseFloat(video.FrameRate);
-    add('Видео', 'Кадры в секунду',
-        Math.abs(fpsAct - fpsExp) < 0.01 ? 'pass' : 'fail', fpsExp, fpsAct);
-
+    add('Видео', 'Кадры в секунду', Math.abs(fpsAct - fpsExp) < 0.01 ? 'pass' : 'fail', fpsExp, fpsAct);
     const aspectExp = getCfg('cfgAspect');
     const aspectActStr = video.DisplayAspectRatio_String || video.DisplayAspectRatio || '—';
     const aspectNum = parseFloat(video.DisplayAspectRatio);
@@ -680,30 +1212,22 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
     const aspectOk = String(aspectActStr).replace(/\s/g,'') === aspectExp ||
                      (!isNaN(expRatio) && Math.abs(aspectNum - expRatio) < 0.01);
     add('Видео', 'Соотношение сторон', aspectOk ? 'pass' : 'fail', aspectExp, aspectActStr);
-
     const par = video.PixelAspectRatio || 1;
     add('Видео', 'Соотношение сторон пикселя',
-        Math.abs(parseFloat(par) - 1) < 0.01 ? 'pass' : 'fail',
-        '1:1', par == 1 ? '1:1' : par);
-
+        Math.abs(parseFloat(par) - 1) < 0.01 ? 'pass' : 'fail', '1:1', par == 1 ? '1:1' : par);
     const vbr = parseRange(getCfg('cfgVBitrate'));
     const actBR = (parseFloat(video.BitRate) || 0) / 1_000_000;
     add('Видео', 'Битрейт видео',
         actBR >= vbr.min && actBR <= vbr.max ? 'pass' : 'fail',
         `${vbr.min}…${vbr.max} Мбит/с`, `${actBR.toFixed(3)} Мбит/с`);
-
     const scanExp = getCfg('cfgScan');
     const scanAct = video.ScanType || 'Progressive';
-    add('Видео', 'Тип развёртки',
-        scanAct.toLowerCase() === scanExp.toLowerCase() ? 'pass' : 'fail',
-        scanExp, scanAct);
-
+    add('Видео', 'Тип развёртки', scanAct.toLowerCase() === scanExp.toLowerCase() ? 'pass' : 'fail', scanExp, scanAct);
     const bdExp = parseInt(getCfg('cfgVBitDepth'));
     const bdAct = parseInt(video.BitDepth);
     add('Видео', 'Битовая глубина видео',
         bdAct === bdExp ? 'pass' : (isNaN(bdAct) ? 'skip' : 'fail'),
         `${bdExp} бит`, `${bdAct || '—'} бит`);
-
     const vTracksExp = parseInt(getCfg('cfgVTracks'));
     add('Видео', 'Количество видеодорожек',
         videoTracks.length === vTracksExp ? 'pass' : 'fail', vTracksExp, videoTracks.length);
@@ -711,35 +1235,23 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
     add('Видео', 'Видеодорожка', 'fail', 'Должна быть', 'Не найдена');
   }
 
-  // ===== Аудио (метаданные) =====
+  // Аудио
   if (audio) {
     const aCodecsExp = parseList(getCfg('cfgACodec'));
     const aCodec = (audio.Format || '').toUpperCase();
     const aCodecOk = aCodecsExp.some(c => aCodec.includes(c));
-    add('Аудио', 'Аудиокодек', aCodecOk ? 'pass' : 'fail',
-        aCodecsExp.join(', '), audio.Format || '—');
-
+    add('Аудио', 'Аудиокодек', aCodecOk ? 'pass' : 'fail', aCodecsExp.join(', '), audio.Format || '—');
     const abrMin = parseFloat(getCfg('cfgABitrate'));
     const aBR = (parseFloat(audio.BitRate) || 0) / 1000;
-    add('Аудио', 'Битрейт аудио',
-        aBR > abrMin ? 'pass' : 'fail', `> ${abrMin} кбит/с`, `${aBR.toFixed(0)} кбит/с`);
-
+    add('Аудио', 'Битрейт аудио', aBR > abrMin ? 'pass' : 'fail', `> ${abrMin} кбит/с`, `${aBR.toFixed(0)} кбит/с`);
     const chExp = parseInt(getCfg('cfgAChans'));
     const totalCh = audioTracks.reduce((s, t) => s + (parseInt(t.Channels)||0), 0);
-    add('Аудио', 'Каналов в файле',
-        totalCh === chExp ? 'pass' : 'fail', chExp, totalCh);
-
-    add('Аудио', 'Каналов в дорожке',
-        parseInt(audio.Channels) === chExp ? 'pass' : 'fail', chExp, audio.Channels);
-
+    add('Аудио', 'Каналов в файле', totalCh === chExp ? 'pass' : 'fail', chExp, totalCh);
+    add('Аудио', 'Каналов в дорожке', parseInt(audio.Channels) === chExp ? 'pass' : 'fail', chExp, audio.Channels);
     const layout = audio.ChannelLayout || (parseInt(audio.Channels)===2 ? 'L R' : '—');
-    add('Аудио', 'Схема каналов',
-        layout.includes('L') && layout.includes('R') ? 'pass' : 'warn', 'L R', layout);
-
+    add('Аудио', 'Схема каналов', layout.includes('L') && layout.includes('R') ? 'pass' : 'warn', 'L R', layout);
     const srExp = parseInt(getCfg('cfgASampleRate'));
-    add('Аудио', 'Частота дискретизации',
-        parseInt(audio.SamplingRate) === srExp ? 'pass' : 'fail', srExp, audio.SamplingRate);
-
+    add('Аудио', 'Частота дискретизации', parseInt(audio.SamplingRate) === srExp ? 'pass' : 'fail', srExp, audio.SamplingRate);
     const abdExp = parseInt(getCfg('cfgABitDepth'));
     const abdAct = parseInt(audio.BitDepth);
     add('Аудио', 'Битовая глубина аудио',
@@ -747,60 +1259,49 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
         `${abdExp} бит`, `${audio.BitDepth || '—'} бит`);
   }
 
-  // ===== Громкость (EBU R128) =====
+  // Громкость
   if (loudness) {
     const lufsTarget = parseFloat(getCfg('cfgLufs'));
     const lufsTol = parseFloat(getCfg('cfgLufsTol'));
     const tpMax = parseFloat(getCfg('cfgTruePeak'));
     const lraRange = parseRange(getCfg('cfgLra'));
-
-    const lufsOk = !isFinite(loudness.integrated) ? false :
-                   Math.abs(loudness.integrated - lufsTarget) <= lufsTol;
-    add('Громкость (EBU R128)', 'LUFS Integrated (I)',
-        lufsOk ? 'pass' : 'fail',
+    const lufsOk = isFinite(loudness.integrated) && Math.abs(loudness.integrated - lufsTarget) <= lufsTol;
+    add('Громкость (EBU R128)', 'LUFS Integrated (I)', lufsOk ? 'pass' : 'fail',
         `${lufsTarget} ± ${lufsTol} LUFS`,
         isFinite(loudness.integrated) ? `${loudness.integrated.toFixed(2)} LUFS` : 'тишина');
-
     const tpOk = isFinite(loudness.truePeak) ? loudness.truePeak <= tpMax : true;
-    add('Громкость (EBU R128)', 'True Peak (max)',
-        tpOk ? 'pass' : 'fail',
-        `≤ ${tpMax} dBTP`,
+    add('Громкость (EBU R128)', 'True Peak (max)', tpOk ? 'pass' : 'fail', `≤ ${tpMax} dBTP`,
         isFinite(loudness.truePeak) ? `${loudness.truePeak.toFixed(2)} dBTP` : '—');
-
     const lraOk = loudness.lra >= lraRange.min && loudness.lra <= lraRange.max;
-    add('Громкость (EBU R128)', 'Loudness Range (LRA)',
-        lraOk ? 'pass' : 'warn',
-        `${lraRange.min}…${lraRange.max} LU`,
-        `${loudness.lra.toFixed(2)} LU`);
-
-    add('Громкость (EBU R128)', 'Short-term max (S)',
-        'pass', '— (информативно)',
+    add('Громкость (EBU R128)', 'Loudness Range (LRA)', lraOk ? 'pass' : 'warn',
+        `${lraRange.min}…${lraRange.max} LU`, `${loudness.lra.toFixed(2)} LU`);
+    add('Громкость (EBU R128)', 'Short-term max (S)', 'pass', '— (информативно)',
         isFinite(loudness.shortTermMax) ? `${loudness.shortTermMax.toFixed(2)} LUFS` : '—');
-
-    add('Громкость (EBU R128)', 'Momentary max (M)',
-        'pass', '— (информативно)',
+    add('Громкость (EBU R128)', 'Momentary max (M)', 'pass', '— (информативно)',
         isFinite(loudness.momentaryMax) ? `${loudness.momentaryMax.toFixed(2)} LUFS` : '—');
   } else if (loudnessError) {
-    add('Громкость (EBU R128)', 'Анализ', 'skip', '—', 'Не выполнен',
-        `Ошибка: ${loudnessError}`);
+    add('Громкость (EBU R128)', 'Анализ', 'skip', '—', 'Не выполнен', `Ошибка: ${loudnessError}`);
   }
 
-  // ===== Тайм-код =====
+  // Тайм-код
   const tcTrack = other.find(t => t.Type === 'Time code') || other[0];
   const tcExp = getCfg('cfgTimecode');
-  const tcAct = tcTrack?.TimeCode_FirstFrame || general?.TimeCode_FirstFrame ||
-                video?.TimeCode_FirstFrame || '—';
+  const tcAct = tcTrack?.TimeCode_FirstFrame || general?.TimeCode_FirstFrame || video?.TimeCode_FirstFrame || '—';
   add('Прочее', 'Начальный тайм-код',
-      tcAct === tcExp ? 'pass' : (tcAct === '—' ? 'skip' : 'warn'),
-      tcExp, tcAct);
+      tcAct === tcExp ? 'pass' : (tcAct === '—' ? 'skip' : 'warn'), tcExp, tcAct);
 
-  // ===== Сводка =====
+  // Сводка
   const counts = { pass: 0, warn: 0, fail: 0, skip: 0 };
   tests.forEach(t => counts[t.status]++);
+
+  const presetInfo = window.__currentPreset
+    ? `<div style="margin-bottom:12px;padding:10px;background:#eef2ff;border-radius:8px;font-size:13px"><strong>Проверка по пресету:</strong> ${window.__currentPreset.name}<br><span style="color:#6b7a99">${window.__currentPreset.desc}</span></div>`
+    : '';
 
   let html = `
     <div class="card">
       <h2 style="margin-top:0">📊 Сводка</h2>
+      ${presetInfo}
       <div class="file-info">
         <strong>${file.name}</strong><br>
         Контейнер: <strong>${containerInfo?.detected || '—'}</strong> •
@@ -818,7 +1319,12 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
     </div>
   `;
 
-  // Карточка громкости (если есть)
+  // Если есть ошибки — показываем гайд по ОТК
+  const hasFails = counts.fail > 0;
+  if (hasFails) {
+    html += renderOTKHelp();
+  }
+
   if (loudness) {
     html += `<div class="card"><h2 style="margin-top:0">🔊 Громкость по EBU R128 / ITU-R BS.1770-4</h2>
       <div class="loudness-grid">
@@ -857,11 +1363,10 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
   } else if (loudnessError) {
     html += `<div class="card"><h2 style="margin-top:0">🔊 Громкость</h2>
       <p style="color:#dc2626"><strong>Не удалось проанализировать:</strong> ${loudnessError}</p>
-      <p style="color:#6b7a99;font-size:13px">Web Audio API не поддерживает декодирование некоторых кодеков (PCM в MOV, ProRes аудио и др.). Метаданные при этом извлечены успешно.</p>
+      <p style="color:#6b7a99;font-size:13px">Web Audio API не поддерживает декодирование некоторых кодеков. Метаданные при этом извлечены успешно.</p>
     </div>`;
   }
 
-  // Группировка тестов
   const cats = [...new Set(tests.map(t => t.cat))];
   for (const cat of cats) {
     html += `<div class="card"><h3 style="margin-top:0">${cat}</h3><table>
@@ -878,7 +1383,6 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
     html += `</tbody></table></div>`;
   }
 
-  // Полные метаданные
   html += `<div class="card"><details><summary>🔍 Полные метаданные (raw JSON)</summary>
     <pre>${escapeHtml(JSON.stringify({ container: containerInfo, mediainfo: data, loudness }, null, 2))}</pre></details></div>`;
 
@@ -888,7 +1392,6 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-
 function formatDuration(sec) {
   if (!sec) return '—';
   const s = parseFloat(sec);
