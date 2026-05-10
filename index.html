@@ -205,14 +205,7 @@
   .tg-contact .tg-icon svg { width: 18px; height: 18px; fill: #fff; }
   .tg-contact .tg-text { display: flex; flex-direction: column; line-height: 1.2; }
   .tg-contact .tg-text small { color: #6b7a99; font-size: 11px; font-weight: normal; }
-  
-  /* === Лог ffmpeg === */
-  .ffmpeg-log {
-    margin-top: 12px; padding: 12px; background: #1a2233; color: #a3e635;
-    border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px;
-    max-height: 200px; overflow-y: auto; white-space: pre-wrap; display: none;
-  }
-  .ffmpeg-log.active { display: block; }
+
   
   .info-banner {
     padding: 12px 16px; background: #dbeafe; border-radius: 8px;
@@ -224,6 +217,73 @@
     .tg-contact { right: 12px; bottom: 12px; padding: 8px 14px 8px 10px; font-size: 12px; }
     .tg-contact .tg-icon { width: 28px; height: 28px; }
   }
+
+  /* === КНОПКИ РЕЖИМА === */
+.mode-tabs {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+.mode-tab {
+  flex: 1; padding: 12px 16px; border-radius: 10px;
+  border: 2px solid #eef0f5; background: #fff;
+  cursor: pointer; transition: all 0.15s;
+  font-size: 14px; font-weight: 600; color: #6b7a99;
+  display: flex; align-items: center; gap: 8px; justify-content: center;
+}
+.mode-tab:hover { border-color: #4a6cf7; color: #2b3a67; }
+.mode-tab.active {
+  background: linear-gradient(135deg, #2b3a67 0%, #4a6cf7 100%);
+  color: #fff; border-color: #4a6cf7;
+}
+.mode-tab .icon { font-size: 18px; }
+
+/* === ИНСТРУКЦИЯ ПО ЭКСПОРТУ АУДИО === */
+.audio-help {
+  margin-top: 12px; padding: 16px;
+  background: #eef2ff; border-radius: 10px;
+  border-left: 4px solid #4a6cf7; font-size: 13px;
+}
+.audio-help h4 { margin: 0 0 8px 0; color: #2b3a67; font-size: 14px; }
+.audio-help ul { margin: 6px 0; padding-left: 20px; color: #4b5563; }
+.audio-help li { margin: 4px 0; }
+
+/* === ДИАЛОГОВОЕ ОКНО ПРИ БОЛЬШОМ ФАЙЛЕ === */
+.audio-fallback-modal {
+  background: #fff; border-radius: 16px; max-width: 600px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.audio-fallback-modal .modal-header {
+  background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%);
+}
+.audio-fallback-modal .modal-body { padding: 24px 28px; }
+.audio-fallback-modal .step {
+  display: flex; gap: 12px; margin-bottom: 12px;
+  padding: 12px; background: #fafbff; border-radius: 8px;
+}
+.audio-fallback-modal .step-num {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+  background: #4a6cf7; color: #fff; display: flex;
+  align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px;
+}
+.audio-fallback-modal .step-text { font-size: 14px; color: #1a2233; }
+.audio-fallback-modal .step-text strong { color: #2b3a67; }
+.audio-fallback-modal .step-text small { color: #6b7a99; display: block; margin-top: 4px; }
+.audio-fallback-modal .actions {
+  display: flex; gap: 8px; margin-top: 20px;
+}
+.audio-fallback-modal .btn {
+  flex: 1; padding: 12px; border-radius: 8px;
+  border: none; cursor: pointer; font-size: 14px; font-weight: 600;
+}
+.audio-fallback-modal .btn-primary {
+  background: #4a6cf7; color: #fff;
+}
+.audio-fallback-modal .btn-primary:hover { background: #3a5ce7; }
+.audio-fallback-modal .btn-secondary {
+  background: #e5e7eb; color: #4b5563;
+}
+.audio-fallback-modal .btn-secondary:hover { background: #d1d5db; }
+
 </style>
 </head>
 <body>
@@ -238,6 +298,52 @@
   </div>
 </div>
 
+<!-- Модальное окно при ошибке анализа звука большого файла -->
+<div class="modal-overlay hidden" id="audioFallbackModal">
+  <div class="audio-fallback-modal">
+    <div class="modal-header">
+      <h2>⚠️ Файл слишком большой для проверки звука</h2>
+      <p>Браузер не может проанализировать аудио в файлах больше 4 ГБ</p>
+    </div>
+    <div class="modal-body">
+      <p style="margin-top:0;color:#4b5563">
+        Метаданные файла проверены успешно — но для измерения громкости (LUFS, True Peak, LRA) 
+        нужно <strong>экспортировать звук отдельно</strong> и загрузить в режиме "Только звук".
+      </p>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <strong>Откройте проект в монтажной программе</strong>
+          <small>Premiere Pro / DaVinci Resolve / Final Cut Pro / Avid</small>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <strong>Экспортируйте только аудио в формате WAV</strong>
+          <small>Параметры: 48 kHz, 24-bit, Stereo (или сколько каналов в проекте)</small>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <strong>Переключитесь в режим "Только звук"</strong>
+          <small>Кнопка вверху страницы → загрузите WAV-файл</small>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="closeAudioFallback()">Понятно</button>
+        <button class="btn btn-primary" onclick="closeAudioFallback(); switchMode('audio');">Перейти в режим "Только звук"</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <div class="container">
   <h1>🎬 VideoQC</h1>
   <p class="subtitle">Проверка видеофайла по стандартам ГИТР + EBU R128 / ITU-R BS.1770-4</p>
@@ -250,63 +356,91 @@
     <button onclick="showPresetModal()">Сменить</button>
   </div>
 
-  <div class="card">
-    <label class="drop-zone disabled" id="dropZone">
-      <div class="icon">📁</div>
-      <p><strong>Перетащите видеофайл сюда</strong> или нажмите для выбора</p>
-      <p style="font-size:12px">MOV, MP4, MKV, AVI, MXF и др.</p>
-      <input type="file" id="fileInput" accept="video/*,audio/*,.mov,.mp4,.mkv,.mxf,.avi,.m2v,.ts,.m2ts,.wav,.mp3,.aac,.m4a">
-    </label>
-    <div class="status-line">
-      <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">Загрузка библиотек...</span>
-    </div>
-    <div class="checkbox-row">
-      <input type="checkbox" id="enableLoudness" checked>
-      <label for="enableLoudness">
-        <strong>Анализ громкости по EBU R128 (LUFS / True Peak / LRA)</strong><br>
-        <small>Для файлов < 1.5 ГБ — быстрый анализ через Web Audio API.<br>
-        Для больших файлов — ffmpeg.wasm с фильтром ebur128 (точные результаты, как в профессиональных утилитах).</small>
-      </label>
-    </div>
-    <div class="info-banner" id="ffmpegInfo" style="display:none">
-      ⚙️ Большой файл — будет использован ffmpeg.wasm. Загрузка библиотеки (~30 МБ) при первом использовании, потом она кешируется.
-    </div>
-    <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
-    <div class="ffmpeg-log" id="ffmpegLog"></div>
-    <div class="file-info" id="fileInfo"></div>
+
+<div class="card">
+  <!-- Переключатель режимов -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="modeTabFull" onclick="switchMode('full')">
+      <span class="icon">🎬</span>
+      <span>Видео + звук</span>
+    </button>
+    <button class="mode-tab" id="modeTabAudio" onclick="switchMode('audio')">
+      <span class="icon">🔊</span>
+      <span>Только звук (WAV/MP3)</span>
+    </button>
   </div>
 
-  <div class="card">
-    <details>
-      <summary>⚙️ Ожидаемые параметры (можно редактировать вручную)</summary>
-      <div style="margin-top:16px">
-        <div class="section-title">Видео</div>
-        <div class="config-row"><label>Контейнер (MOV/MP4/MKV/AVI/MXF)</label><input id="cfgContainer" value="MOV"></div>
-        <div class="config-row"><label>Видеокодек</label><input id="cfgVCodec" value="H264,AVC,PRORES,DNxHD,DNxHR"></div>
-        <div class="config-row"><label>Разрешение</label><input id="cfgResolution" value="3840x2160"></div>
-        <div class="config-row"><label>FPS</label><input id="cfgFps" value="25"></div>
-        <div class="config-row"><label>Соотношение сторон</label><input id="cfgAspect" value="16:9"></div>
-        <div class="config-row"><label>Битрейт видео, Мбит/с (мин..макс)</label><input id="cfgVBitrate" value="90..100"></div>
-        <div class="config-row"><label>Тип развёртки</label><input id="cfgScan" value="Progressive"></div>
-        <div class="config-row"><label>Битовая глубина видео</label><input id="cfgVBitDepth" value="8"></div>
-        <div class="config-row"><label>Количество видеодорожек</label><input id="cfgVTracks" value="1"></div>
-        <div class="section-title">Аудио</div>
-        <div class="config-row"><label>Аудиокодек</label><input id="cfgACodec" value="PCM,AAC"></div>
-        <div class="config-row"><label>Битрейт аудио, кбит/с (мин)</label><input id="cfgABitrate" value="128"></div>
-        <div class="config-row"><label>Каналов в файле</label><input id="cfgAChans" value="2"></div>
-        <div class="config-row"><label>Частота дискретизации, Гц</label><input id="cfgASampleRate" value="48000"></div>
-        <div class="config-row"><label>Битовая глубина аудио</label><input id="cfgABitDepth" value="24"></div>
-        <div class="section-title">Громкость (EBU R128)</div>
-        <div class="config-row"><label>Целевой LUFS Integrated</label><input id="cfgLufs" value="-23"></div>
-        <div class="config-row"><label>Допустимое отклонение, LU</label><input id="cfgLufsTol" value="0.5"></div>
-        <div class="config-row"><label>Максимальный True Peak, dBTP</label><input id="cfgTruePeak" value="-1"></div>
-        <div class="config-row"><label>Loudness Range, LU (мин..макс)</label><input id="cfgLra" value="0..20"></div>
-        <div class="section-title">Тайм-код</div>
-        <div class="config-row"><label>Начальный тайм-код</label><input id="cfgTimecode" value="00:59:52:00"></div>
-      </div>
-    </details>
+  
+  <label class="drop-zone disabled" id="dropZone">
+    <div class="icon" id="dropIcon">📁</div>
+    <p id="dropTitle"><strong>Перетащите видеофайл сюда</strong> или нажмите для выбора</p>
+    <p style="font-size:12px" id="dropSubtitle">MOV, MP4, MKV, AVI, MXF и др.</p>
+    <input type="file" id="fileInput" accept="video/*,audio/*,.mov,.mp4,.mkv,.mxf,.avi,.m2v,.ts,.m2ts,.wav,.mp3,.aac,.m4a,.flac">
+  </label>
+  
+  <div class="status-line">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Загрузка библиотеки MediaInfo...</span>
   </div>
+  
+  <div class="checkbox-row" id="loudnessRow">
+    <input type="checkbox" id="enableLoudness" checked>
+    <label for="enableLoudness">
+      <strong>Анализ громкости по EBU R128 (LUFS / True Peak / LRA)</strong><br>
+      <small id="loudnessHint">Для файлов меньше 4 ГБ — быстрый анализ. Для больших файлов рекомендуется отдельный экспорт аудио.</small>
+    </label>
+  </div>
+
+    <details>
+  <summary>⚙️ Ожидаемые параметры (можно редактировать вручную)</summary>
+  <div style="margin-top:16px">
+    <div class="section-title">Видео</div>
+    <div class="config-row"><label>Контейнер (MOV/MP4/MKV/AVI/MXF)</label><input id="cfgContainer" value="MOV"></div>
+    <div class="config-row"><label>Видеокодек</label><input id="cfgVCodec" value="H264,AVC,PRORES,DNxHD,DNxHR"></div>
+    <div class="config-row"><label>Разрешение</label><input id="cfgResolution" value="3840x2160"></div>
+    <div class="config-row"><label>FPS</label><input id="cfgFps" value="25"></div>
+    <div class="config-row"><label>Соотношение сторон</label><input id="cfgAspect" value="16:9"></div>
+    <div class="config-row"><label>Битрейт видео, Мбит/с (мин..макс)</label><input id="cfgVBitrate" value="90..100"></div>
+    <div class="config-row"><label>Тип развёртки</label><input id="cfgScan" value="Progressive"></div>
+    <div class="config-row"><label>Битовая глубина видео</label><input id="cfgVBitDepth" value="8"></div>
+    <div class="config-row"><label>Количество видеодорожек</label><input id="cfgVTracks" value="1"></div>
+    
+    <div class="section-title">Аудио</div>
+    <div class="config-row"><label>Аудиокодек</label><input id="cfgACodec" value="PCM,AAC"></div>
+    <div class="config-row"><label>Битрейт аудио, кбит/с (мин)</label><input id="cfgABitrate" value="128"></div>
+    <div class="config-row"><label>Каналов в файле</label><input id="cfgAChans" value="2"></div>
+    <div class="config-row"><label>Частота дискретизации, Гц</label><input id="cfgASampleRate" value="48000"></div>
+    <div class="config-row"><label>Битовая глубина аудио</label><input id="cfgABitDepth" value="24"></div>
+    
+    <div class="section-title">Громкость (EBU R128)</div>
+    <div class="config-row"><label>Целевой LUFS Integrated</label><input id="cfgLufs" value="-23"></div>
+    <div class="config-row"><label>Допустимое отклонение, LU</label><input id="cfgLufsTol" value="0.5"></div>
+    <div class="config-row"><label>Максимальный True Peak, dBTP</label><input id="cfgTruePeak" value="-1"></div>
+    <div class="config-row"><label>Loudness Range, LU (мин..макс)</label><input id="cfgLra" value="0..20"></div>
+    
+    <div class="section-title">Тайм-код</div>
+    <div class="config-row"><label>Начальный тайм-код</label><input id="cfgTimecode" value="00:59:52:00"></div>
+  </div>
+</details>
+
+  
+  <!-- Инструкция для режима "Только звук" -->
+  <div class="audio-help" id="audioHelp" style="display:none">
+    <h4>📖 Как экспортировать аудио из видео</h4>
+    <p>Для проверки громкости очень больших файлов (>4 ГБ) экспортируйте звук отдельно:</p>
+    <ul>
+      <li><strong>Adobe Premiere Pro:</strong> File → Export → Media → Format: <em>Waveform Audio</em> → Export</li>
+      <li><strong>DaVinci Resolve:</strong> Deliver → Format: <em>WAV</em> → Audio Only → Render</li>
+      <li><strong>Final Cut Pro:</strong> File → Share → Export File → Settings: <em>Audio Only</em></li>
+      <li><strong>Avid Media Composer:</strong> File → Output → Export to File → WAV/AIFF</li>
+    </ul>
+    <p style="margin-top:8px"><strong>Параметры экспорта:</strong> WAV, 48 kHz, 24-bit, Stereo (или 5.1 если многоканальный звук)</p>
+  </div>
+  
+  <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="file-info" id="fileInfo"></div>
+</div>
+
 
   <div id="results"></div>
 </div>
@@ -324,9 +458,6 @@
 <!-- MediaInfo -->
 <script src="https://unpkg.com/mediainfo.js@0.1.9/dist/mediainfo.min.js"></script>
 
-<!-- ffmpeg.wasm UMD bundle (single-threaded, работает без COOP/COEP заголовков) -->
-<script src="https://unpkg.com/@ffmpeg/[email protected]/dist/umd/ffmpeg.js"></script>
-<script src="https://unpkg.com/@ffmpeg/[email protected]/dist/umd/util.js"></script>
 
 <script>
 // ============================================================
@@ -488,18 +619,65 @@ const progressBar = document.getElementById('progressBar');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const enableLoudness = document.getElementById('enableLoudness');
-const ffmpegLog = document.getElementById('ffmpegLog');
-const ffmpegInfo = document.getElementById('ffmpegInfo');
 
 const WASM_URL = 'https://unpkg.com/mediainfo.js@0.1.9/dist/MediaInfoModule.wasm';
 
-// Размер, выше которого автоматически переключаемся на ffmpeg.wasm
-const SIZE_THRESHOLD_FFMPEG = 1.5 * 1024 * 1024 * 1024; // 1.5 ГБ
+// Размер, выше которого выдаём предупреждение для видеофайлов
+const SIZE_THRESHOLD_AUDIO = 4 * 1024 * 1024 * 1024; // 1.5 ГБ
+
+// Текущий режим: 'full' (видео+звук) или 'audio' (только звук)
+let currentMode = 'full';
+
+function switchMode(mode) {
+  currentMode = mode;
+  const tabFull = document.getElementById('modeTabFull');
+  const tabAudio = document.getElementById('modeTabAudio');
+  const dropIcon = document.getElementById('dropIcon');
+  const dropTitle = document.getElementById('dropTitle');
+  const dropSubtitle = document.getElementById('dropSubtitle');
+  const audioHelp = document.getElementById('audioHelp');
+  const loudnessRow = document.getElementById('loudnessRow');
+  const enableLoudness = document.getElementById('enableLoudness');
+  const loudnessHint = document.getElementById('loudnessHint');
+  const fileInput = document.getElementById('fileInput');
+  
+  if (mode === 'audio') {
+    tabFull.classList.remove('active');
+    tabAudio.classList.add('active');
+    dropIcon.textContent = '🔊';
+    dropTitle.innerHTML = '<strong>Перетащите аудиофайл</strong> или нажмите для выбора';
+    dropSubtitle.textContent = 'WAV, MP3, AAC, FLAC, M4A — рекомендуется WAV 48 kHz';
+    audioHelp.style.display = 'block';
+    loudnessRow.style.display = 'none';
+    enableLoudness.checked = true; // в этом режиме всегда анализируем громкость
+    fileInput.accept = 'audio/*,.wav,.mp3,.aac,.m4a,.flac,.ogg,.opus';
+  } else {
+    tabFull.classList.add('active');
+    tabAudio.classList.remove('active');
+    dropIcon.textContent = '📁';
+    dropTitle.innerHTML = '<strong>Перетащите видеофайл сюда</strong> или нажмите для выбора';
+    dropSubtitle.textContent = 'MOV, MP4, MKV, AVI, MXF и др.';
+    audioHelp.style.display = 'none';
+    loudnessRow.style.display = 'flex';
+    fileInput.accept = 'video/*,audio/*,.mov,.mp4,.mkv,.mxf,.avi,.m2v,.ts,.m2ts,.wav,.mp3,.aac,.m4a,.flac';
+  }
+  
+  // Очищаем результаты при смене режима
+  results.innerHTML = '';
+  fileInfo.textContent = '';
+}
+
+function showAudioFallback() {
+  document.getElementById('audioFallbackModal').classList.remove('hidden');
+}
+function closeAudioFallback() {
+  document.getElementById('audioFallbackModal').classList.add('hidden');
+}
 
 function checkLibrary() {
   if (typeof MediaInfo === 'function') {
     statusDot.classList.add('ready');
-    statusText.textContent = 'Готов к работе. MediaInfo + Web Audio + ffmpeg.wasm.';
+    statusText.textContent = 'Готов к работе. MediaInfo + Web Audio.';
     dropZone.classList.remove('disabled');
     return true;
   }
@@ -723,163 +901,6 @@ async function computeEBUR128(audioBuffer, onProgress) {
     sampleRate: sr, channels: nch, source: 'webaudio' };
 }
 
-// ============================================================
-//  FFMPEG.WASM — АНАЛИЗ ГРОМКОСТИ ЧЕРЕЗ ebur128 ФИЛЬТР
-// ============================================================
-let ffmpegInstance = null;
-
-async function getFFmpeg() {
-  if (ffmpegInstance) return ffmpegInstance;
-  
-  if (typeof FFmpegWASM === 'undefined') {
-    throw new Error('Библиотека ffmpeg.wasm не загрузилась. Проверьте интернет и обновите страницу.');
-  }
-  
-  const { FFmpeg } = FFmpegWASM;
-  const ffmpeg = new FFmpeg();
-  
-  // Лог ffmpeg → выводим в UI и парсим результаты ebur128
-  const logLines = [];
-  ffmpeg.on('log', ({ message }) => {
-    logLines.push(message);
-    if (logLines.length > 100) logLines.shift();
-    ffmpegLog.textContent = logLines.join('\n');
-    ffmpegLog.scrollTop = ffmpegLog.scrollHeight;
-  });
-  
-  // Прогресс декодирования
-  ffmpeg.on('progress', ({ progress, time }) => {
-    const pct = Math.min(95, 30 + progress * 60);
-    progressBar.style.width = pct + '%';
-    statusText.textContent = `ffmpeg: ${(progress * 100).toFixed(0)}% (${(time / 1000000).toFixed(1)} с)`;
-  });
-  
-  // CDN base для ffmpeg-core (single-threaded версия)
-  const CORE_CDN = 'https://unpkg.com/@ffmpeg/[email protected]/dist/umd';
-  
-  await ffmpeg.load({
-    coreURL: `${CORE_CDN}/ffmpeg-core.js`,
-    wasmURL: `${CORE_CDN}/ffmpeg-core.wasm`,
-  });
-  
-  ffmpegInstance = { ffmpeg, logLines };
-  return ffmpegInstance;
-}
-
-// Парсинг результата фильтра ebur128 из stderr ffmpeg
-function parseEBUR128Output(logLines) {
-  const text = logLines.join('\n');
-  
-  // Формат итогового вывода ffmpeg ebur128:
-  //   Integrated loudness:
-  //     I:         -23.1 LUFS
-  //     Threshold: -33.4 LUFS
-  //   Loudness range:
-  //     LRA:        7.2 LU
-  //     Threshold: -43.2 LUFS
-  //     LRA low:  -27.5 LUFS
-  //     LRA high: -20.3 LUFS
-  //   True peak:
-  //     Peak:      -3.2 dBFS
-  
-  const result = {
-    integrated: -Infinity,
-    lra: 0,
-    truePeak: -Infinity,
-    momentaryMax: -Infinity,
-    shortTermMax: -Infinity,
-    sampleRate: null,
-    channels: null,
-    source: 'ffmpeg'
-  };
-  
-  // Integrated loudness (I)
-  const iMatch = text.match(/I:\s*([-\d.]+)\s*LUFS/);
-  if (iMatch) result.integrated = parseFloat(iMatch[1]);
-  
-  // LRA
-  const lraMatch = text.match(/LRA:\s*([\d.]+)\s*LU/);
-  if (lraMatch) result.lra = parseFloat(lraMatch[1]);
-  
-  // True Peak (ffmpeg в ebur128 выдаёт Peak в dBFS, при peak=true становится True Peak в dBTP)
-  const tpMatch = text.match(/(?:True peak|Peak):\s*([-\d.]+)\s*(?:dBFS|dBTP)/);
-  if (tpMatch) result.truePeak = parseFloat(tpMatch[1]);
-  
-  // Momentary max — последняя строка типа "M:" из streaming output
-  // Можно искать максимум по всем строкам M: и S:
-  const momentaryValues = [];
-  const shortTermValues = [];
-  for (const line of logLines) {
-    const mMatch = line.match(/M:\s*([-\d.]+)\s+S:\s*([-\d.]+)/);
-    if (mMatch) {
-      const m = parseFloat(mMatch[1]);
-      const s = parseFloat(mMatch[2]);
-      if (!isNaN(m) && isFinite(m)) momentaryValues.push(m);
-      if (!isNaN(s) && isFinite(s)) shortTermValues.push(s);
-    }
-  }
-  if (momentaryValues.length > 0) result.momentaryMax = Math.max(...momentaryValues);
-  if (shortTermValues.length > 0) result.shortTermMax = Math.max(...shortTermValues);
-  
-  // Sample rate / channels из строк типа "Stream #0:1: Audio: pcm_s24le, 48000 Hz, stereo"
-  const audioStreamMatch = text.match(/Audio:[^,]+,\s*(\d+)\s*Hz,\s*(\w+)/);
-  if (audioStreamMatch) {
-    result.sampleRate = parseInt(audioStreamMatch[1]);
-    const layout = audioStreamMatch[2];
-    if (layout === 'stereo') result.channels = 2;
-    else if (layout === 'mono') result.channels = 1;
-    else if (layout === '5.1') result.channels = 6;
-    else result.channels = parseInt(layout) || 2;
-  }
-  
-  return result;
-}
-
-async function analyzeLoudnessWithFFmpeg(file, onProgress) {
-  const { ffmpeg, logLines } = await getFFmpeg();
-  
-  // Очищаем лог
-  logLines.length = 0;
-  ffmpegLog.textContent = '';
-  ffmpegLog.classList.add('active');
-  
-  statusText.textContent = 'Загрузка файла в виртуальную ФС ffmpeg...';
-  
-  // Загружаем файл во виртуальную файловую систему ffmpeg
-  // Для больших файлов читаем потоково (каждые 64 МБ)
-  const inputName = 'input' + (file.name.match(/\.[a-z0-9]+$/i)?.[0] || '.bin');
-  
-  // ffmpeg.wasm 0.12 умеет читать File напрямую через fetchFile
-  const { fetchFile } = FFmpegUtil;
-  await ffmpeg.writeFile(inputName, await fetchFile(file));
-  
-  if (onProgress) onProgress(0.3);
-  statusText.textContent = 'Анализ громкости через ebur128 фильтр...';
-  
-  // Команда: ffmpeg -i input -af ebur128=peak=true -f null -
-  // peak=true → даёт True Peak в dBTP вместо обычного Peak
-  await ffmpeg.exec([
-    '-hide_banner',
-    '-nostats',           // отключаем строки прогресса в stderr
-    '-i', inputName,
-    '-af', 'ebur128=peak=true:framelog=verbose',
-    '-f', 'null',
-    '-'
-  ]);
-  
-  if (onProgress) onProgress(0.95);
-  
-  // Удаляем входной файл из ФС, чтобы освободить память
-  try { await ffmpeg.deleteFile(inputName); } catch(e) {}
-  
-  // Парсим результат
-  const result = parseEBUR128Output(logLines);
-  
-  if (onProgress) onProgress(1.0);
-  ffmpegLog.classList.remove('active');
-  
-  return result;
-}
 
 // ============================================================
 //  ОСНОВНАЯ ОБРАБОТКА ФАЙЛА
@@ -889,22 +910,78 @@ async function handleFile(file) {
     alert('Библиотека MediaInfo не загружена. Обновите страницу.');
     return;
   }
+  
   fileInfo.textContent = `Файл: ${file.name} (${(file.size/1024/1024).toFixed(2)} МБ)`;
   results.innerHTML = '';
   progress.style.display = 'block';
   progressBar.style.width = '5%';
-  ffmpegLog.classList.remove('active');
-  ffmpegInfo.style.display = 'none';
   
   let metadata = null, containerInfo = null, loudness = null, loudnessError = null;
   
   try {
-    // 1. Контейнер
+    // === РЕЖИМ "ТОЛЬКО ЗВУК" ===
+    if (currentMode === 'audio') {
+      statusText.textContent = 'Чтение метаданных аудиофайла...';
+      
+      // Лёгкая проверка контейнера для аудио (не критично)
+      containerInfo = await detectRealContainer(file);
+      progressBar.style.width = '8%';
+      
+      // MediaInfo для аудио
+      const mediainfo = await new Promise((resolve, reject) => {
+        try {
+          MediaInfo({
+            format: 'object', full: true, coverData: false,
+            locateFile: (p) => p.endsWith('.wasm') ? WASM_URL : p
+          }, mi => resolve(mi));
+        } catch (err) { reject(err); }
+      });
+      const getSize = () => file.size;
+      const readChunk = (chunkSize, offset) => new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = ev => res(new Uint8Array(ev.target.result));
+        r.onerror = rej;
+        r.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
+      });
+      metadata = await mediainfo.analyzeData(getSize, readChunk);
+      if (mediainfo.close) mediainfo.close();
+      progressBar.style.width = '20%';
+      
+      // Анализ громкости
+      try {
+        statusText.textContent = 'Декодирование аудио...';
+        const arrayBuffer = await file.arrayBuffer();
+        progressBar.style.width = '40%';
+        
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+        
+        progressBar.style.width = '50%';
+        statusText.textContent = 'Расчёт EBU R128 / ITU-R BS.1770...';
+        loudness = await computeEBUR128(audioBuffer, (p) => {
+          progressBar.style.width = (50 + p * 45) + '%';
+        });
+        ctx.close();
+      } catch (e) {
+        loudnessError = `Не удалось проанализировать звук: ${e.message}. Попробуйте другой формат (рекомендуется WAV 48 kHz, 24-bit).`;
+        console.error('Audio-only loudness error:', e);
+      }
+      
+      progressBar.style.width = '95%';
+      statusText.textContent = 'Формирование отчёта...';
+      renderResults(metadata, file, containerInfo, loudness, loudnessError, true);
+      progressBar.style.width = '100%';
+      statusText.textContent = 'Готово.';
+      setTimeout(() => progress.style.display = 'none', 500);
+      return;
+    }
+    
+    // === РЕЖИМ "ВИДЕО + ЗВУК" ===
     statusText.textContent = 'Определение типа контейнера...';
     containerInfo = await detectRealContainer(file);
     progressBar.style.width = '8%';
     
-    // 2. MediaInfo
     statusText.textContent = 'Чтение метаданных...';
     const mediainfo = await new Promise((resolve, reject) => {
       try {
@@ -925,23 +1002,15 @@ async function handleFile(file) {
     if (mediainfo.close) mediainfo.close();
     progressBar.style.width = '20%';
     
-    // 3. Громкость — выбираем метод по размеру файла
+    // Анализ громкости (только если файл не слишком большой)
     if (enableLoudness.checked) {
-      const useFFmpeg = file.size > SIZE_THRESHOLD_FFMPEG;
-      
-      if (useFFmpeg) {
-        ffmpegInfo.style.display = 'block';
-      }
-      
-      try {
-        if (useFFmpeg) {
-          // === Большой файл → ffmpeg.wasm ===
-          statusText.textContent = 'Загрузка ffmpeg.wasm (~30 МБ при первом запуске)...';
-          loudness = await analyzeLoudnessWithFFmpeg(file, (p) => {
-            progressBar.style.width = (20 + p * 75) + '%';
-          });
-        } else {
-          // === Небольшой файл → быстрый Web Audio API ===
+      // === Превентивная проверка размера ===
+      if (file.size > SIZE_THRESHOLD_AUDIO) {
+        loudnessError = `Файл слишком большой (${(file.size/1024/1024/1024).toFixed(2)} ГБ) — браузер не может проанализировать звук в файлах больше 4 ГБ.`;
+        // Показываем диалог с инструкцией
+        setTimeout(() => showAudioFallback(), 500);
+      } else {
+        try {
           statusText.textContent = 'Декодирование аудио (Web Audio API)...';
           let arrayBuffer;
           try {
@@ -951,9 +1020,7 @@ async function handleFile(file) {
               const reader = new FileReader();
               reader.onload = () => resolve(reader.result);
               reader.onerror = () => reject(new Error(
-                `Не удалось прочитать файл: ${reader.error?.message || readErr.message}. ` +
-                `Возможно, файл на сетевом диске или открыт в другой программе. ` +
-                `Попробуйте скопировать локально на SSD.`
+                `Не удалось прочитать файл: ${reader.error?.message || readErr.message}`
               ));
               reader.readAsArrayBuffer(file);
             });
@@ -967,34 +1034,36 @@ async function handleFile(file) {
             audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
           } catch (decodeErr) {
             ctx.close();
-            // Если Web Audio не справился — пробуем ffmpeg в качестве fallback
-            statusText.textContent = 'Web Audio не справился, переключаемся на ffmpeg.wasm...';
-            ffmpegInfo.style.display = 'block';
-            loudness = await analyzeLoudnessWithFFmpeg(file, (p) => {
-              progressBar.style.width = (40 + p * 55) + '%';
-            });
-            arrayBuffer = null;
+            throw new Error(
+              `Браузер не может декодировать аудио (часто бывает с PCM в MOV). ` +
+              `Сообщение: ${decodeErr.message}`
+            );
           }
           
-          if (audioBuffer) {
-            progressBar.style.width = '50%';
-            statusText.textContent = 'Расчёт EBU R128 / ITU-R BS.1770...';
-            loudness = await computeEBUR128(audioBuffer, (p) => {
-              progressBar.style.width = (50 + p * 45) + '%';
-            });
-            ctx.close();
-            arrayBuffer = null;
+          progressBar.style.width = '50%';
+          statusText.textContent = 'Расчёт EBU R128 / ITU-R BS.1770...';
+          loudness = await computeEBUR128(audioBuffer, (p) => {
+            progressBar.style.width = (50 + p * 45) + '%';
+          });
+          ctx.close();
+          arrayBuffer = null;
+        } catch (e) {
+          loudnessError = e.message;
+          console.error('Loudness error:', e);
+          // Если это ошибка чтения большого файла — показываем диалог
+          if (e.message.includes('NotReadableError') || 
+              e.message.includes('too large') ||
+              e.message.includes('memory') ||
+              file.size > 500 * 1024 * 1024) {
+            setTimeout(() => showAudioFallback(), 500);
           }
         }
-      } catch (e) {
-        loudnessError = e.message;
-        console.error('Loudness error:', e);
       }
     }
     
     progressBar.style.width = '95%';
     statusText.textContent = 'Формирование отчёта...';
-    renderResults(metadata, file, containerInfo, loudness, loudnessError);
+    renderResults(metadata, file, containerInfo, loudness, loudnessError, false);
     progressBar.style.width = '100%';
     statusText.textContent = 'Готово.';
     setTimeout(() => progress.style.display = 'none', 500);
@@ -1005,6 +1074,7 @@ async function handleFile(file) {
     console.error(e);
   }
 }
+
 
 function getCfg(id) { return document.getElementById(id).value.trim(); }
 function parseList(s) { return s.split(',').map(x=>x.trim().toUpperCase()).filter(Boolean); }
@@ -1024,7 +1094,8 @@ function renderOTKHelp() {
     </div>`;
 }
 
-function renderResults(data, file, containerInfo, loudness, loudnessError) {
+function renderResults(data, file, containerInfo, loudness, loudnessError, audioOnlyMode) {
+
   const tracks = (data.media && data.media.track) || [];
   const general = tracks.find(t => t['@type'] === 'General');
   const video = tracks.find(t => t['@type'] === 'Video');
@@ -1034,7 +1105,10 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
   const audioTracks = tracks.filter(t => t['@type'] === 'Audio');
   const tests = [];
   const add = (cat, name, status, exp, act, note='') => tests.push({ cat, name, status, exp, act, note });
-  
+
+
+if (!audioOnlyMode) {
+
   // Контейнер
   const containerExpected = getCfg('cfgContainer').toUpperCase();
   const detectedFromFtyp = (containerInfo?.detected || '').toUpperCase();
@@ -1104,6 +1178,7 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
     add('Видео', 'Видеодорожка', 'fail', 'Должна быть', 'Не найдена');
   }
   
+}
   // Аудио
   if (audio) {
     const aCodecsExp = parseList(getCfg('cfgACodec'));
@@ -1135,7 +1210,7 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
     const tpMax = parseFloat(getCfg('cfgTruePeak'));
     const lraRange = parseRange(getCfg('cfgLra'));
     const lufsOk = isFinite(loudness.integrated) && Math.abs(loudness.integrated - lufsTarget) <= lufsTol;
-    const sourceTag = loudness.source === 'ffmpeg' ? '[ffmpeg]' : '[Web Audio]';
+    const sourceTag = loudness.source ='[Web Audio]';
     add('Громкость (EBU R128)', `LUFS Integrated (I) ${sourceTag}`, lufsOk ? 'pass' : 'fail',
         `${lufsTarget} ± ${lufsTol} LUFS`,
         isFinite(loudness.integrated) ? `${loudness.integrated.toFixed(2)} LUFS` : 'тишина');
@@ -1157,12 +1232,15 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
     add('Громкость (EBU R128)', 'Анализ', 'skip', '—', 'Не выполнен', `Ошибка: ${loudnessError}`);
   }
   
+  if (!audioOnlyMode) {
   // Тайм-код
   const tcTrack = other.find(t => t.Type === 'Time code') || other[0];
   const tcExp = getCfg('cfgTimecode');
   const tcAct = tcTrack?.TimeCode_FirstFrame || general?.TimeCode_FirstFrame || video?.TimeCode_FirstFrame || '—';
   add('Прочее', 'Начальный тайм-код',
       tcAct === tcExp ? 'pass' : (tcAct === '—' ? 'skip' : 'warn'), tcExp, tcAct);
+
+  }
   
   // Сводка
   const counts = { pass: 0, warn: 0, fail: 0, skip: 0 };
@@ -1193,7 +1271,7 @@ function renderResults(data, file, containerInfo, loudness, loudnessError) {
   if (counts.fail > 0) html += renderOTKHelp();
   
   if (loudness) {
-    const sourceLabel = loudness.source === 'ffmpeg' ? 'ffmpeg ebur128' : 'Web Audio API';
+    const sourceLabel = 'Web Audio API';
     html += `<div class="card"><h2 style="margin-top:0">🔊 Громкость по EBU R128 / ITU-R BS.1770-4 <small style="font-size:12px;color:#6b7a99;font-weight:normal">(${sourceLabel})</small></h2>
       <div class="loudness-grid">
         <div class="loudness-item">
