@@ -2,292 +2,631 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>VideoQC — Проверка видеофайла ГИТР</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VideoQC · ГИТР</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
 <style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #f4f6fa; margin: 0; padding: 24px; color: #1a2233;
-    min-height: 100vh;
-  }
-  .container { max-width: 1100px; margin: 0 auto; padding-bottom: 80px; }
-  h1 { color: #2b3a67; margin-bottom: 4px; }
-  .subtitle { color: #6b7a99; margin-bottom: 24px; }
-  .card {
-    background: #fff; border-radius: 12px; padding: 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;
-  }
-  .drop-zone {
-    border: 2px dashed #b0bcd6; border-radius: 12px; padding: 40px;
-    text-align: center; cursor: pointer; transition: all 0.2s;
-    background: #fafbff; display: block;
-  }
-  .drop-zone:hover, .drop-zone.dragover {
-    border-color: #4a6cf7; background: #eef2ff;
-  }
-  .drop-zone.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-  .drop-zone input { display: none; }
-  .drop-zone p { margin: 8px 0; color: #6b7a99; }
-  .drop-zone .icon { font-size: 48px; }
-  .status-line {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: #6b7a99; margin-top: 12px;
-  }
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;
-    animation: pulse 1.5s infinite;
-  }
-  .status-dot.ready { background: #16a34a; animation: none; }
-  .status-dot.error { background: #dc2626; animation: none; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .summary-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px; margin-bottom: 16px;
-  }
-  .stat { text-align: center; padding: 12px; border-radius: 8px; background: #f4f6fa; }
-  .stat .num { font-size: 28px; font-weight: 700; }
-  .stat .label { font-size: 12px; color: #6b7a99; margin-top: 4px; }
-  .stat.pass .num { color: #16a34a; }
-  .stat.warn .num { color: #f59e0b; }
-  .stat.fail .num { color: #dc2626; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eef0f5; font-size: 14px; }
-  th { background: #f9fafc; color: #6b7a99; font-weight: 600; }
-  .badge {
-    display: inline-block; padding: 4px 10px; border-radius: 6px;
-    font-size: 12px; font-weight: 600;
-  }
-  .badge.pass { background: #d1fae5; color: #065f46; }
-  .badge.warn { background: #fef3c7; color: #92400e; }
-  .badge.fail { background: #fee2e2; color: #991b1b; }
-  .badge.skip { background: #e5e7eb; color: #4b5563; }
-  .section-title {
-    font-size: 13px; text-transform: uppercase; color: #6b7a99;
-    letter-spacing: 0.5px; margin: 24px 0 8px; font-weight: 600;
-  }
-  .config-row {
-    display: flex; gap: 12px; align-items: center;
-    margin-bottom: 8px; font-size: 14px;
-  }
-  .config-row label { flex: 1; color: #4b5563; }
-  .config-row input {
-    padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px;
-    font-size: 13px; width: 220px;
-  }
-  details { margin-top: 12px; }
-  summary { cursor: pointer; font-weight: 600; color: #4a6cf7; padding: 8px 0; }
-  .file-info { font-size: 13px; color: #4b5563; margin-top: 8px; }
-  .progress {
-    margin-top: 16px; height: 6px; background: #eef0f5;
-    border-radius: 3px; overflow: hidden; display: none;
-  }
-  .progress-bar {
-    height: 100%; background: #4a6cf7; width: 0%;
-    transition: width 0.3s;
-  }
-  pre {
-    background: #f4f6fa; padding: 16px; border-radius: 8px;
-    overflow: auto; font-size: 12px; max-height: 500px;
-  }
-  .checkbox-row {
-    display: flex; align-items: flex-start; gap: 8px;
-    margin-top: 12px; padding: 12px;
-    background: #fef3c7; border-radius: 8px; font-size: 14px;
-  }
-  .checkbox-row input { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; }
-  .loudness-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px; margin-top: 12px;
-  }
-  .loudness-item {
-    padding: 16px; background: #f4f6fa; border-radius: 8px;
-    border-left: 4px solid #4a6cf7;
-  }
-  .loudness-item .label { font-size: 11px; color: #6b7a99; text-transform: uppercase; letter-spacing: 0.5px; }
-  .loudness-item .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
-  .loudness-item .desc { font-size: 11px; color: #9ca3af; margin-top: 4px; }
-  .modal-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(15, 23, 42, 0.75);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000; padding: 20px;
-    backdrop-filter: blur(4px);
-  }
-  .modal-overlay.hidden { display: none; }
-  .modal {
-    background: #fff; border-radius: 16px; max-width: 720px; width: 100%;
-    max-height: 90vh; overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  }
-  .modal-header {
-    padding: 24px 28px; border-bottom: 1px solid #eef0f5;
-    background: linear-gradient(135deg, #2b3a67 0%, #4a6cf7 100%);
-    color: #fff; border-radius: 16px 16px 0 0;
-  }
-  .modal-header h2 { margin: 0 0 4px 0; font-size: 22px; }
-  .modal-header p { margin: 0; opacity: 0.9; font-size: 14px; }
-  .modal-body { padding: 24px 28px; }
-  .preset-group { margin-bottom: 24px; }
-  .preset-group h3 {
-    font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
-    color: #6b7a99; margin: 0 0 12px 0;
-  }
-  .preset-card {
-    border: 2px solid #eef0f5; border-radius: 10px; padding: 14px 16px;
-    margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .preset-card:hover {
-    border-color: #4a6cf7; background: #f7f9ff;
-    transform: translateX(2px);
-  }
-  .preset-card .name { font-weight: 600; color: #1a2233; }
-  .preset-card .desc { font-size: 12px; color: #6b7a99; margin-top: 2px; }
-  .preset-card .arrow { color: #4a6cf7; font-size: 18px; }
-  .preset-tag {
-    display: inline-block; padding: 2px 8px; border-radius: 4px;
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
-    margin-right: 6px;
-  }
-  .preset-tag.master { background: #ede9fe; color: #6d28d9; }
-  .preset-tag.broadcast { background: #dbeafe; color: #1d4ed8; }
-  .preset-tag.uhd { background: #fef3c7; color: #92400e; }
-  .preset-tag.hd { background: #d1fae5; color: #065f46; }
-  .preset-tag.sd { background: #fee2e2; color: #991b1b; }
-  .preset-display {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px; background: #eef2ff; border-radius: 10px;
-    border-left: 4px solid #4a6cf7; margin-bottom: 16px;
-  }
-  .preset-display .info { font-size: 13px; }
-  .preset-display .info strong { color: #2b3a67; font-size: 15px; }
-  .preset-display button {
-    background: #4a6cf7; color: #fff; border: none;
-    padding: 8px 14px; border-radius: 6px; cursor: pointer;
-    font-size: 13px; font-weight: 500;
-  }
-  .preset-display button:hover { background: #3a5ce7; }
-  .otk-help {
-    margin-top: 16px; padding: 20px;
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border-radius: 12px; border-left: 4px solid #f59e0b;
-  }
-  .otk-help h3 { margin: 0 0 8px 0; color: #78350f; font-size: 16px; }
-  .otk-help p { margin: 0 0 12px 0; color: #78350f; font-size: 14px; }
-  .otk-help .yt-link {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: #dc2626; color: #fff; text-decoration: none;
-    padding: 10px 18px; border-radius: 8px; font-weight: 600;
-    transition: background 0.15s;
-  }
-  .otk-help .yt-link:hover { background: #b91c1c; }
-  .otk-help .yt-link svg { width: 20px; height: 20px; }
-  .tg-contact {
-    position: fixed; right: 20px; bottom: 20px;
-    background: #fff; border-radius: 50px; padding: 10px 18px 10px 14px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    display: flex; align-items: center; gap: 10px;
-    text-decoration: none; color: #1a2233;
-    font-size: 14px; font-weight: 500;
-    transition: all 0.2s; z-index: 100;
-    border: 1px solid #e5e7eb;
-  }
-  .tg-contact:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(0,0,0,0.2);
-    border-color: #229ED9;
-  }
-  .tg-contact .tg-icon {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, #2AABEE 0%, #229ED9 100%);
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  }
-  .tg-contact .tg-icon svg { width: 18px; height: 18px; fill: #fff; }
-  .tg-contact .tg-text { display: flex; flex-direction: column; line-height: 1.2; }
-  .tg-contact .tg-text small { color: #6b7a99; font-size: 11px; font-weight: normal; }
+/* ══════════════════════════════════════════════════════
+   ГЛОБАЛЬНЫЙ СБРОС И CSS-ПЕРЕМЕННЫЕ
+══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
-  
-  .info-banner {
-    padding: 12px 16px; background: #dbeafe; border-radius: 8px;
-    border-left: 4px solid #2563eb; font-size: 13px; color: #1e3a8a;
-    margin-top: 12px;
-  }
+:root {
+  /* Палитра (тёмная) */
+  --ob-bg:       #06080b;
+  --ob-card:     #0e1318;
+  --ob-card2:    #131920;
+  --ob-border:   rgba(255,255,255,0.07);
+  --ob-border2:  rgba(255,255,255,0.04);
+  --ob-primary:  #4D9FE0;
+  --ob-primary-dim: rgba(77,159,224,0.15);
+  --ob-primary-glow: rgba(77,159,224,0.3);
+  --ob-text:     #f0f4f8;
+  --ob-muted:    #4a5568;
+  --ob-muted2:   #718096;
+  --ob-r:        10px;
+  --font:        'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --display:     'Unbounded', sans-serif;
+  --mono:        'JetBrains Mono', monospace;
 
-  @media (max-width: 600px) {
-    .tg-contact { right: 12px; bottom: 12px; padding: 8px 14px 8px 10px; font-size: 12px; }
-    .tg-contact .tg-icon { width: 28px; height: 28px; }
-  }
-
-  /* === КНОПКИ РЕЖИМА === */
-.mode-tabs {
-  display: flex; gap: 8px; margin-bottom: 16px;
+  /* VideoQC-палитра (светлая) */
+  --vq-bg:       #f4f6fa;
+  --vq-card:     #ffffff;
+  --vq-primary:  #4a6cf7;
+  --vq-text:     #1a2233;
+  --vq-muted:    #6b7a99;
+  --vq-border:   #eef0f5;
+  --vq-success:  #16a34a;
+  --vq-warn:     #f59e0b;
+  --vq-danger:   #dc2626;
 }
-.mode-tab {
-  flex: 1; padding: 12px 16px; border-radius: 10px;
-  border: 2px solid #eef0f5; background: #fff;
+
+/* ══════════════════════════════════════════════════════
+   ЕДИНАЯ ШАПКА
+══════════════════════════════════════════════════════ */
+#site-header {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(6,8,11,0.92);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--ob-border);
+  font-family: var(--font);
+}
+.site-header-inner {
+  max-width: 1180px; margin: 0 auto; padding: 0 20px;
+  display: flex; align-items: center; gap: 0;
+  height: 58px;
+}
+
+/* Логотип */
+.site-logo {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none; flex-shrink: 0; margin-right: 20px;
+}
+.site-logo-mark {
+  width: 32px; height: 32px; border-radius: 7px;
+  background: linear-gradient(135deg, #4a6cf7 0%, #4D9FE0 100%);
+  display: grid; place-items: center;
+  font-family: var(--display); font-size: 10px; font-weight: 800; color: #fff;
+  box-shadow: 0 0 14px rgba(74,108,247,0.4);
+  flex-shrink: 0;
+}
+.site-logo-text { display: flex; flex-direction: column; line-height: 1.15; }
+.site-logo-name {
+  font-family: var(--display); font-size: 14px; font-weight: 800;
+  letter-spacing: -0.03em; color: #fff;
+}
+.site-logo-sub { font-size: 10px; color: var(--ob-muted2); font-weight: 500; }
+
+/* Переключатель режимов */
+.site-nav { display: flex; gap: 4px; }
+.site-nav-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 8px;
+  border: 1px solid transparent;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  color: var(--ob-muted2); background: transparent;
+  cursor: pointer; transition: all 0.18s; white-space: nowrap;
+  text-decoration: none;
+}
+.site-nav-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+.site-nav-btn.active {
+  color: #fff;
+  background: rgba(74,108,247,0.18);
+  border-color: rgba(74,108,247,0.35);
+}
+.site-nav-btn .nav-icon { font-size: 16px; line-height: 1; }
+.site-nav-badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  background: rgba(77,159,224,0.2); color: var(--ob-primary);
+  border: 1px solid rgba(77,159,224,0.3);
+  padding: 2px 6px; border-radius: 4px;
+}
+
+/* Правая часть шапки */
+.site-header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.header-tg {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 8px;
+  border: 1px solid var(--ob-border);
+  background: var(--ob-card);
+  color: var(--ob-muted2); font-size: 12px; font-weight: 600;
+  text-decoration: none; transition: all 0.18s; font-family: var(--font);
+  white-space: nowrap;
+}
+.header-tg:hover { border-color: #229ED9; color: #2AABEE; }
+.header-tg-dot {
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, #2AABEE, #229ED9);
+  border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+}
+.header-tg-dot svg { width: 13px; height: 13px; fill: #fff; }
+
+/* ══════════════════════════════════════════════════════
+   ЭКРАНЫ (SWITCHER)
+══════════════════════════════════════════════════════ */
+#screen-tool    { display: block; }
+#screen-ref   { display: none; }
+
+/* ══════════════════════════════════════════════════════
+   ██ ЭКРАН 1: VideoQC TOOL ██
+══════════════════════════════════════════════════════ */
+#screen-tool {
+  font-family: var(--font);
+  background: var(--vq-bg);
+  min-height: 100vh;
+  color: var(--vq-text);
+  padding: 24px 0 100px;
+}
+.vq-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* Hero-заголовок инструмента */
+.vq-hero {
+  padding: 10px 0 20px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.vq-hero-title {
+  font-family: var(--display); font-size: 26px; font-weight: 800;
+  letter-spacing: -0.03em; color: var(--vq-text);
+}
+.vq-hero-title span { color: var(--vq-primary); }
+.vq-hero-sub { font-size: 13px; color: var(--vq-muted); margin-top: 3px; }
+.vq-hero-link {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  font-size: 12px; font-weight: 700; color: var(--vq-muted);
   cursor: pointer; transition: all 0.15s;
-  font-size: 14px; font-weight: 600; color: #6b7a99;
-  display: flex; align-items: center; gap: 8px; justify-content: center;
+  text-decoration: none; font-family: var(--font);
 }
-.mode-tab:hover { border-color: #4a6cf7; color: #2b3a67; }
-.mode-tab.active {
-  background: linear-gradient(135deg, #2b3a67 0%, #4a6cf7 100%);
-  color: #fff; border-color: #4a6cf7;
+.vq-hero-link:hover { border-color: var(--vq-primary); color: var(--vq-primary); }
+.vq-hero-link .count-pill {
+  font-family: var(--mono); font-size: 10px;
+  background: #eef2ff; color: var(--vq-primary);
+  border: 1px solid #c7d2fe;
+  padding: 2px 6px; border-radius: 4px; font-weight: 700;
 }
-.mode-tab .icon { font-size: 18px; }
 
-/* === ИНСТРУКЦИЯ ПО ЭКСПОРТУ АУДИО === */
-.audio-help {
+/* VideoQC cards */
+.vq-card {
+  background: var(--vq-card); border-radius: 12px;
+  padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+/* drop-zone */
+.vq-drop-zone {
+  border: 2px dashed #b0bcd6; border-radius: 12px; padding: 40px;
+  text-align: center; cursor: pointer; transition: all 0.2s;
+  background: #fafbff; display: block;
+}
+.vq-drop-zone:hover, .vq-drop-zone.dragover {
+  border-color: var(--vq-primary); background: #eef2ff;
+}
+.vq-drop-zone.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+.vq-drop-zone input { display: none; }
+.vq-drop-zone p { margin: 8px 0; color: var(--vq-muted); }
+.vq-drop-zone .icon { font-size: 48px; }
+
+.vq-status-line {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--vq-muted); margin-top: 12px;
+}
+.vq-status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--vq-warn); animation: vq-pulse 1.5s infinite;
+  flex-shrink: 0;
+}
+.vq-status-dot.ready  { background: var(--vq-success); animation: none; }
+.vq-status-dot.error  { background: var(--vq-danger);  animation: none; }
+@keyframes vq-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.vq-summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr));
+  gap: 12px; margin-bottom: 16px;
+}
+.vq-stat { text-align: center; padding: 12px; border-radius: 8px; background: var(--vq-bg); }
+.vq-stat .num { font-size: 28px; font-weight: 700; }
+.vq-stat .label { font-size: 12px; color: var(--vq-muted); margin-top: 4px; }
+.vq-stat.pass .num { color: var(--vq-success); }
+.vq-stat.warn .num { color: var(--vq-warn); }
+.vq-stat.fail .num { color: var(--vq-danger); }
+
+/* таблица результатов */
+.vq-table { width: 100%; border-collapse: collapse; }
+.vq-table th, .vq-table td {
+  padding: 10px 12px; text-align: left;
+  border-bottom: 1px solid var(--vq-border); font-size: 14px;
+}
+.vq-table th { background: #f9fafc; color: var(--vq-muted); font-weight: 600; }
+
+.vq-badge {
+  display: inline-block; padding: 4px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600;
+}
+.vq-badge.pass { background: #d1fae5; color: #065f46; }
+.vq-badge.warn { background: #fef3c7; color: #92400e; }
+.vq-badge.fail { background: #fee2e2; color: #991b1b; }
+.vq-badge.skip { background: #e5e7eb; color: #4b5563; }
+
+.vq-section-title {
+  font-size: 13px; text-transform: uppercase; color: var(--vq-muted);
+  letter-spacing: 0.5px; margin: 24px 0 8px; font-weight: 600;
+}
+.vq-config-row {
+  display: flex; gap: 12px; align-items: center;
+  margin-bottom: 8px; font-size: 14px;
+}
+.vq-config-row label { flex: 1; color: #4b5563; }
+.vq-config-row input {
+  padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px;
+  font-size: 13px; width: 220px; font-family: var(--font);
+}
+
+.vq-progress { margin-top: 16px; height: 6px; background: var(--vq-border); border-radius: 3px; overflow: hidden; display: none; }
+.vq-progress-bar { height: 100%; background: var(--vq-primary); width: 0%; transition: width 0.3s; }
+
+.vq-file-info { font-size: 13px; color: #4b5563; margin-top: 8px; }
+
+.vq-checkbox-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 12px; padding: 12px;
+  background: #fef3c7; border-radius: 8px; font-size: 14px;
+}
+.vq-checkbox-row input { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; }
+
+.vq-loudness-grid {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap: 12px; margin-top: 12px;
+}
+.vq-loudness-item {
+  padding: 16px; background: var(--vq-bg); border-radius: 8px;
+  border-left: 4px solid var(--vq-primary);
+}
+.vq-loudness-item .label { font-size: 11px; color: var(--vq-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.vq-loudness-item .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.vq-loudness-item .desc  { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+
+/* mode-tabs */
+.vq-mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.vq-mode-tab {
+  flex: 1; padding: 12px 16px; border-radius: 10px;
+  border: 2px solid var(--vq-border); background: var(--vq-card);
+  cursor: pointer; transition: all 0.15s;
+  font-size: 14px; font-weight: 600; color: var(--vq-muted);
+  display: flex; align-items: center; gap: 8px; justify-content: center;
+  font-family: var(--font);
+}
+.vq-mode-tab:hover { border-color: var(--vq-primary); color: var(--vq-text); }
+.vq-mode-tab.active {
+  background: linear-gradient(135deg, #2b3a67 0%, var(--vq-primary) 100%);
+  color: #fff; border-color: var(--vq-primary);
+}
+.vq-mode-tab .icon { font-size: 18px; }
+
+/* audio-help */
+.vq-audio-help {
   margin-top: 12px; padding: 16px;
   background: #eef2ff; border-radius: 10px;
-  border-left: 4px solid #4a6cf7; font-size: 13px;
+  border-left: 4px solid var(--vq-primary); font-size: 13px;
 }
-.audio-help h4 { margin: 0 0 8px 0; color: #2b3a67; font-size: 14px; }
-.audio-help ul { margin: 6px 0; padding-left: 20px; color: #4b5563; }
-.audio-help li { margin: 4px 0; }
+.vq-audio-help h4 { margin: 0 0 8px 0; color: #2b3a67; font-size: 14px; }
+.vq-audio-help ul { margin: 6px 0; padding-left: 20px; color: #4b5563; }
+.vq-audio-help li { margin: 4px 0; }
 
-/* === ДИАЛОГОВОЕ ОКНО ПРИ БОЛЬШОМ ФАЙЛЕ === */
+/* OTK help block */
+.vq-otk-help {
+  margin-top: 16px; padding: 20px;
+  background: linear-gradient(135deg,#fef3c7,#fde68a);
+  border-radius: 12px; border-left: 4px solid var(--vq-warn);
+}
+.vq-otk-help h3 { margin: 0 0 8px; color: #78350f; font-size: 16px; }
+.vq-otk-help p  { margin: 0 0 12px; color: #78350f; font-size: 14px; }
+.vq-otk-help .yt-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--vq-danger); color: #fff; text-decoration: none;
+  padding: 10px 18px; border-radius: 8px; font-weight: 600;
+  transition: background 0.15s;
+}
+.vq-otk-help .yt-link:hover { background: #b91c1c; }
+.vq-otk-help .yt-link svg { width: 20px; height: 20px; }
+
+/* Ссылка «открыть тест в справочнике» (в строке таблицы) */
+.to-ref-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700;
+  color: var(--ob-primary); background: var(--ob-primary-dim);
+  border: 1px solid rgba(77,159,224,0.25);
+  padding: 2px 7px; border-radius: 4px;
+  cursor: pointer; margin-left: 6px; white-space: nowrap;
+  transition: all 0.15s; text-decoration: none;
+  font-family: var(--font);
+}
+.to-ref-btn:hover { background: rgba(77,159,224,0.3); }
+
+/* details */
+details { margin-top: 12px; }
+summary { cursor: pointer; font-weight: 600; color: var(--vq-primary); padding: 8px 0; }
+pre {
+  background: var(--vq-bg); padding: 16px; border-radius: 8px;
+  overflow: auto; font-size: 12px; max-height: 500px;
+}
+
+/* preset */
+.vq-preset-display {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: #eef2ff; border-radius: 10px;
+  border-left: 4px solid var(--vq-primary); margin-bottom: 16px;
+}
+.vq-preset-display .info { font-size: 13px; }
+.vq-preset-display .info strong { color: #2b3a67; font-size: 15px; }
+.vq-preset-display button {
+  background: var(--vq-primary); color: #fff; border: none;
+  padding: 8px 14px; border-radius: 6px; cursor: pointer;
+  font-size: 13px; font-weight: 500; font-family: var(--font);
+}
+.vq-preset-display button:hover { background: #3a5ce7; }
+
+/* ══════════════════════════════════════════════════════
+   МОДАЛКИ (пресеты + audio-fallback)
+══════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+  backdrop-filter: blur(4px);
+  font-family: var(--font);
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: #fff; border-radius: 16px; max-width: 720px; width: 100%;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.modal-header {
+  padding: 24px 28px; border-bottom: 1px solid var(--vq-border);
+  background: linear-gradient(135deg, #2b3a67 0%, var(--vq-primary) 100%);
+  color: #fff; border-radius: 16px 16px 0 0;
+}
+.modal-header h2 { margin: 0 0 4px; font-size: 22px; font-family: var(--font); }
+.modal-header p  { margin: 0; opacity: .9; font-size: 14px; font-family: var(--font); }
+.modal-body { padding: 24px 28px; font-family: var(--font); }
+.preset-group { margin-bottom: 24px; }
+.preset-group h3 {
+  font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--vq-muted); margin: 0 0 12px; font-family: var(--font);
+}
+.preset-card {
+  border: 2px solid var(--vq-border); border-radius: 10px; padding: 14px 16px;
+  margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.preset-card:hover { border-color: var(--vq-primary); background: #f7f9ff; transform: translateX(2px); }
+.preset-card .name { font-weight: 600; color: var(--vq-text); font-family: var(--font); }
+.preset-card .desc { font-size: 12px; color: var(--vq-muted); margin-top: 2px; font-family: var(--font); }
+.preset-card .arrow { color: var(--vq-primary); font-size: 18px; }
+.preset-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; margin-right: 6px;
+}
+.preset-tag.master    { background: #ede9fe; color: #6d28d9; }
+.preset-tag.broadcast { background: #dbeafe; color: #1d4ed8; }
+.preset-tag.uhd { background: #fef3c7; color: #92400e; }
+.preset-tag.hd  { background: #d1fae5; color: #065f46; }
+.preset-tag.sd  { background: #fee2e2; color: #991b1b; }
+
+/* audio-fallback modal */
 .audio-fallback-modal {
   background: #fff; border-radius: 16px; max-width: 600px; width: 100%;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 .audio-fallback-modal .modal-header {
-  background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%);
+  background: linear-gradient(135deg,#f59e0b,#dc2626);
 }
-.audio-fallback-modal .modal-body { padding: 24px 28px; }
+.audio-fallback-modal .modal-body { padding: 24px 28px; font-family: var(--font); }
 .audio-fallback-modal .step {
   display: flex; gap: 12px; margin-bottom: 12px;
   padding: 12px; background: #fafbff; border-radius: 8px;
 }
 .audio-fallback-modal .step-num {
   flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
-  background: #4a6cf7; color: #fff; display: flex;
-  align-items: center; justify-content: center;
+  background: var(--vq-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 14px;
 }
-.audio-fallback-modal .step-text { font-size: 14px; color: #1a2233; }
+.audio-fallback-modal .step-text { font-size: 14px; color: var(--vq-text); }
 .audio-fallback-modal .step-text strong { color: #2b3a67; }
-.audio-fallback-modal .step-text small { color: #6b7a99; display: block; margin-top: 4px; }
-.audio-fallback-modal .actions {
-  display: flex; gap: 8px; margin-top: 20px;
-}
-.audio-fallback-modal .btn {
-  flex: 1; padding: 12px; border-radius: 8px;
-  border: none; cursor: pointer; font-size: 14px; font-weight: 600;
-}
-.audio-fallback-modal .btn-primary {
-  background: #4a6cf7; color: #fff;
-}
+.audio-fallback-modal .step-text small { color: var(--vq-muted); display: block; margin-top: 4px; }
+.audio-fallback-modal .actions { display: flex; gap: 8px; margin-top: 20px; }
+.audio-fallback-modal .btn { flex: 1; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; font-family: var(--font); }
+.audio-fallback-modal .btn-primary { background: var(--vq-primary); color: #fff; }
 .audio-fallback-modal .btn-primary:hover { background: #3a5ce7; }
-.audio-fallback-modal .btn-secondary {
-  background: #e5e7eb; color: #4b5563;
-}
+.audio-fallback-modal .btn-secondary { background: #e5e7eb; color: #4b5563; }
 .audio-fallback-modal .btn-secondary:hover { background: #d1d5db; }
 
+/* ══════════════════════════════════════════════════════
+   ██ ЭКРАН 2: СПРАВОЧНИК ТЕСТОВ ██
+══════════════════════════════════════════════════════ */
+#screen-ref {
+  font-family: var(--font);
+  background: var(--ob-bg);
+  min-height: 100vh;
+  color: var(--ob-text);
+  -webkit-font-smoothing: antialiased;
+}
+.ob-wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+/* Hero */
+.ob-hero {
+  padding: 56px 0 36px;
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(77,159,224,.13) 0%, transparent 70%);
+}
+.ob-hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--ob-primary); text-transform: uppercase; letter-spacing: .12em;
+  padding: 5px 12px; border: 1px solid rgba(77,159,224,.3);
+  background: var(--ob-primary-dim); border-radius: 999px; margin-bottom: 18px;
+}
+.ob-hero h1 {
+  font-family: var(--display); font-size: clamp(32px,4.5vw,58px);
+  font-weight: 800; letter-spacing: -.04em; line-height: 1; margin-bottom: 14px;
+}
+.ob-hero h1 span { color: var(--ob-primary); }
+.ob-hero p { color: var(--ob-muted2); font-size: 15px; max-width: 520px; margin-bottom: 28px; }
+.ob-check-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: 9px;
+  border: 1px solid rgba(74,108,247,0.35);
+  background: rgba(74,108,247,0.1);
+  font-size: 13px; font-weight: 700; color: #818cf8;
+  cursor: pointer; transition: all 0.15s; text-decoration: none;
+  font-family: var(--font);
+}
+.ob-check-link:hover { background: rgba(74,108,247,0.2); color: #a5b4fc; }
+
+.ob-stats-row { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 20px; }
+.ob-stat-item { display: flex; flex-direction: column; gap: 2px; }
+.ob-stat-n { font-family: var(--display); font-size: 26px; font-weight: 800; color: var(--ob-primary); line-height: 1; }
+.ob-stat-l { font-size: 11px; color: var(--ob-muted2); font-weight: 600; }
+
+/* Sticky tabs */
+.ob-tabs-wrap {
+  position: sticky; top: 58px; z-index: 90;
+  background: rgba(6,8,11,0.92); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--ob-border);
+}
+.ob-tabs { display: flex; overflow-x: auto; scrollbar-width: none; }
+.ob-tabs::-webkit-scrollbar { display: none; }
+.ob-tab {
+  padding: 13px 16px; font-size: 12.5px; font-weight: 700;
+  color: var(--ob-muted2); border-bottom: 2px solid transparent;
+  white-space: nowrap; cursor: pointer; transition: all .15s;
+  text-decoration: none; display: flex; align-items: center; gap: 7px;
+}
+.ob-tab:hover { color: var(--ob-text); }
+.ob-tab.active { color: var(--ob-primary); border-bottom-color: var(--ob-primary); }
+.ob-tab-count {
+  font-family: var(--mono); font-size: 10px;
+  background: var(--ob-card); border: 1px solid var(--ob-border);
+  padding: 2px 6px; border-radius: 4px; color: var(--ob-muted2);
+}
+
+/* Секции */
+.ob-section { padding: 44px 0 12px; scroll-margin-top: 115px; }
+.ob-section-title {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 18px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--ob-border);
+}
+.ob-section-title h2 { font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: -.03em; }
+.ob-section-num { font-family: var(--mono); font-size: 11px; color: var(--ob-primary); font-weight: 700; }
+.ob-section-cnt { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ob-muted); }
+
+/* Test table */
+.ob-test-table { border: 1px solid var(--ob-border); border-radius: var(--ob-r); overflow: hidden; }
+.ob-test-row {
+  display: grid; grid-template-columns: 52px 1fr auto;
+  border-bottom: 1px solid var(--ob-border2); transition: background .15s;
+}
+.ob-test-row:last-child { border-bottom: none; }
+.ob-test-row:hover { background: rgba(255,255,255,.02); }
+.ob-test-row.hidden { display: none; }
+.ob-test-num {
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--ob-muted); padding: 14px 0;
+  border-right: 1px solid var(--ob-border2); background: var(--ob-card);
+}
+.ob-test-body { padding: 14px 18px; }
+.ob-test-name { font-size: 13.5px; font-weight: 700; color: var(--ob-text); margin-bottom: 4px; }
+.ob-test-desc { font-size: 12.5px; color: var(--ob-muted2); line-height: 1.55; }
+.ob-test-desc code {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  background: rgba(77,159,224,.1); color: var(--ob-primary);
+  padding: 1px 5px; border-radius: 3px;
+}
+.ob-test-badge { display: flex; align-items: flex-start; padding: 14px 16px 14px 0; }
+.ob-badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.ob-badge-audio { background: rgba(72,187,120,.12); color: #68d391; border: 1px solid rgba(72,187,120,.2); }
+.ob-badge-video { background: rgba(237,137,54,.12); color: #f6ad55; border: 1px solid rgba(237,137,54,.2); }
+.ob-badge-meta  { background: rgba(77,159,224,.12); color: var(--ob-primary); border: 1px solid rgba(77,159,224,.2); }
+.ob-badge-hdr   { background: rgba(159,122,234,.12); color: #b794f4; border: 1px solid rgba(159,122,234,.2); }
+.ob-badge-vod   { background: rgba(252,92,101,.12);  color: #fc8181; border: 1px solid rgba(252,92,101,.2); }
+
+/* Поиск по справочнику */
+.ob-search-wrap { padding: 0 0 12px; }
+.ob-search-inner { position: relative; max-width: 460px; }
+.ob-search-inner input {
+  width: 100%; padding: 10px 14px 10px 38px;
+  background: var(--ob-card); border: 1px solid var(--ob-border);
+  border-radius: 9px; color: var(--ob-text);
+  font-family: var(--font); font-size: 13px; outline: none;
+  transition: all .2s;
+}
+.ob-search-inner input:focus { border-color: var(--ob-primary); box-shadow: 0 0 0 3px var(--ob-primary-dim); }
+.ob-search-inner input::placeholder { color: var(--ob-muted); }
+.ob-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ob-muted); pointer-events: none; }
+.ob-search-kbd {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-family: var(--mono); font-size: 10px; color: var(--ob-muted);
+  background: var(--ob-card2); border: 1px solid var(--ob-border);
+  padding: 2px 6px; border-radius: 4px; pointer-events: none;
+}
+
+/* footer */
+.ob-footer { margin-top: 70px; padding: 28px 0; border-top: 1px solid var(--ob-border); text-align: center; }
+.ob-footer p { font-size: 12px; color: var(--ob-muted); }
+.ob-footer a { color: var(--ob-primary); text-decoration: none; }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .site-header-inner { gap: 0; padding: 0 12px; }
+  .site-logo-sub    { display: none; }
+  .site-nav-btn span:not(.nav-icon) { display: none; }
+  .site-nav-badge   { display: none; }
+  .header-tg span   { display: none; }
+  .ob-test-row      { grid-template-columns: 44px 1fr; }
+  .ob-test-badge    { display: none; }
+  .vq-config-row input { width: 160px; }
+  .vq-hero-link .count-pill { display: none; }
+}
 </style>
 </head>
 <body>
 
+<!-- ══════════════════════════════════════════════════════
+     ЕДИНАЯ ШАПКА
+══════════════════════════════════════════════════════ -->
+<header id="site-header">
+  <div class="site-header-inner">
+    <a class="site-logo" href="#" onclick="switchScreen('tool'); return false;">
+      <div class="site-logo-mark">VQ</div>
+      <div class="site-logo-text">
+        <div class="site-logo-name">VideoQC</div>
+        <div class="site-logo-sub">ГИТР</div>
+      </div>
+    </a>
+
+    <nav class="site-nav" style="margin-left:16px">
+      <button class="site-nav-btn active" id="btn-tool" onclick="switchScreen('tool')">
+        <span class="nav-icon">🔍</span>
+        <span>Проверка файла</span>
+      </button>
+      <button class="site-nav-btn" id="btn-ref" onclick="switchScreen('ref')">
+        <span class="nav-icon">📖</span>
+        <span>Справочник</span>
+        <span class="site-nav-badge">81</span>
+      </button>
+    </nav>
+
+    <div class="site-header-right">
+      <a class="header-tg" href="https://t.me/Adam1TBC" target="_blank" rel="noopener">
+        <div class="header-tg-dot">
+          <svg viewBox="0 0 24 24"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+        </div>
+        <span>@adam1tbc</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+
+<!-- ══════════════════════════════════════════════════════
+     МОДАЛКИ (пресеты + audio-fallback)
+══════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="presetModal">
   <div class="modal">
     <div class="modal-header">
@@ -298,7 +637,6 @@
   </div>
 </div>
 
-<!-- Модальное окно при ошибке анализа звука большого файла -->
 <div class="modal-overlay hidden" id="audioFallbackModal">
   <div class="audio-fallback-modal">
     <div class="modal-header">
@@ -306,289 +644,1151 @@
       <p>Браузер не может проанализировать аудио в файлах больше 4 ГБ</p>
     </div>
     <div class="modal-body">
-      <p style="margin-top:0;color:#4b5563">
-        Метаданные файла проверены успешно — но для измерения громкости (LUFS, True Peak, LRA) 
-        нужно <strong>экспортировать звук отдельно</strong> и загрузить в режиме "Только звук".
-      </p>
-
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-text">
-          <strong>Откройте проект в монтажной программе</strong>
-          <small>Premiere Pro / DaVinci Resolve / Final Cut Pro / Avid</small>
-        </div>
-      </div>
-      
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-text">
-          <strong>Экспортируйте только аудио в формате WAV</strong>
-          <small>Параметры: 48 kHz, 24-bit, Stereo (или сколько каналов в проекте)</small>
-        </div>
-      </div>
-      
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-text">
-          <strong>Переключитесь в режим "Только звук"</strong>
-          <small>Кнопка вверху страницы → загрузите WAV-файл</small>
-        </div>
-      </div>
-
+      <p style="margin-top:0;color:#4b5563">Метаданные файла проверены успешно — но для измерения громкости (LUFS, True Peak, LRA) нужно <strong>экспортировать звук отдельно</strong> и загрузить в режиме «Только звук».</p>
+      <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Откройте проект в монтажной программе</strong><small>Premiere Pro / DaVinci Resolve / Final Cut Pro / Avid</small></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Экспортируйте только аудио в формате WAV</strong><small>Параметры: 48 kHz, 24-bit, Stereo (или сколько каналов в проекте)</small></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Переключитесь в режим «Только звук»</strong><small>Кнопка вверху карточки → загрузите WAV-файл</small></div></div>
       <div class="actions">
         <button class="btn btn-secondary" onclick="closeAudioFallback()">Понятно</button>
-        <button class="btn btn-primary" onclick="closeAudioFallback(); switchMode('audio');">Перейти в режим "Только звук"</button>
+        <button class="btn btn-primary" onclick="closeAudioFallback(); switchAudioMode('audio');">Перейти в режим «Только звук»</button>
       </div>
     </div>
   </div>
 </div>
 
 
-<div class="container">
-  <h1>🎬 VideoQC</h1>
-  <p class="subtitle">Проверка видеофайла по стандартам ГИТР + EBU R128 / ITU-R BS.1770-4</p>
+<!-- ══════════════════════════════════════════════════════
+     ЭКРАН 1: ВИДЕОQC TOOL
+══════════════════════════════════════════════════════ -->
+<div id="screen-tool">
+<div class="vq-container">
 
-  <div class="preset-display" id="presetDisplay" style="display:none">
+  <!-- Hero -->
+  <div class="vq-hero">
+    <div>
+      <div class="vq-hero-title">🎬 <span>VideoQC</span></div>
+      <div class="vq-hero-sub">Проверка видеофайла по стандартам ГИТР + EBU R128 / ITU-R BS.1770-4</div>
+    </div>
+    <a class="vq-hero-link" href="#" onclick="switchScreen('ref');return false;">
+      📖 Что значит каждый тест?
+      <span class="count-pill">81</span>
+    </a>
+  </div>
+
+  <!-- Preset display -->
+  <div class="vq-preset-display" id="presetDisplay" style="display:none">
     <div class="info">
       <strong id="presetName">—</strong><br>
-      <span id="presetDesc" style="color:#6b7a99">—</span>
+      <span id="presetDesc" style="color:var(--vq-muted)">—</span>
     </div>
     <button onclick="showPresetModal()">Сменить</button>
   </div>
 
+  <!-- Main card -->
+  <div class="vq-card">
+    <div class="vq-mode-tabs">
+      <button class="vq-mode-tab active" id="modeTabFull" onclick="switchAudioMode('full')">
+        <span class="icon">🎬</span><span>Видео + звук</span>
+      </button>
+      <button class="vq-mode-tab" id="modeTabAudio" onclick="switchAudioMode('audio')">
+        <span class="icon">🔊</span><span>Только звук (WAV/MP3)</span>
+      </button>
+    </div>
 
-<div class="card">
-  <!-- Переключатель режимов -->
-  <div class="mode-tabs">
-    <button class="mode-tab active" id="modeTabFull" onclick="switchMode('full')">
-      <span class="icon">🎬</span>
-      <span>Видео + звук</span>
-    </button>
-    <button class="mode-tab" id="modeTabAudio" onclick="switchMode('audio')">
-      <span class="icon">🔊</span>
-      <span>Только звук (WAV/MP3)</span>
-    </button>
-  </div>
-
-  
-  <label class="drop-zone disabled" id="dropZone">
-    <div class="icon" id="dropIcon">📁</div>
-    <p id="dropTitle"><strong>Перетащите видеофайл сюда</strong> или нажмите для выбора</p>
-    <p style="font-size:12px" id="dropSubtitle">MOV, MP4, MKV, AVI, MXF и др.</p>
-    <input type="file" id="fileInput" accept="video/*,audio/*,.mov,.mp4,.mkv,.mxf,.avi,.m2v,.ts,.m2ts,.wav,.mp3,.aac,.m4a,.flac">
-  </label>
-  
-  <div class="status-line">
-    <span class="status-dot" id="statusDot"></span>
-    <span id="statusText">Загрузка библиотеки MediaInfo...</span>
-  </div>
-  
-  <div class="checkbox-row" id="loudnessRow">
-    <input type="checkbox" id="enableLoudness" checked>
-    <label for="enableLoudness">
-      <strong>Анализ громкости по EBU R128 (LUFS / True Peak / LRA)</strong><br>
-      <small id="loudnessHint">Для файлов меньше 4 ГБ — быстрый анализ. Для больших файлов рекомендуется отдельный экспорт аудио.</small>
+    <label class="vq-drop-zone disabled" id="dropZone">
+      <div class="icon" id="dropIcon">📁</div>
+      <p id="dropTitle"><strong>Перетащите видеофайл сюда</strong> или нажмите для выбора</p>
+      <p style="font-size:12px" id="dropSubtitle">MOV, MP4, MKV, AVI, MXF и др.</p>
+      <input type="file" id="fileInput" accept="video/*,audio/*,.mov,.mp4,.mkv,.mxf,.avi,.m2v,.ts,.m2ts,.wav,.mp3,.aac,.m4a,.flac">
     </label>
-  </div>
+
+    <div class="vq-status-line">
+      <span class="vq-status-dot" id="statusDot"></span>
+      <span id="statusText">Загрузка библиотеки MediaInfo...</span>
+    </div>
+
+    <div class="vq-checkbox-row" id="loudnessRow">
+      <input type="checkbox" id="enableLoudness" checked>
+      <label for="enableLoudness">
+        <strong>Анализ громкости по EBU R128 (LUFS / True Peak / LRA)</strong><br>
+        <small id="loudnessHint">Для файлов меньше 4 ГБ — быстрый анализ. Для больших файлов рекомендуется отдельный экспорт аудио.</small>
+      </label>
+    </div>
 
     <details>
-  <summary>⚙️ Ожидаемые параметры (можно редактировать вручную)</summary>
-  <div style="margin-top:16px">
-    <div class="section-title">Видео</div>
-    <div class="config-row"><label>Контейнер (MOV/MP4/MKV/AVI/MXF)</label><input id="cfgContainer" value="MOV"></div>
-    <div class="config-row"><label>Видеокодек</label><input id="cfgVCodec" value="H264,AVC,PRORES,DNxHD,DNxHR"></div>
-    <div class="config-row"><label>Разрешение</label><input id="cfgResolution" value="3840x2160"></div>
-    <div class="config-row"><label>FPS</label><input id="cfgFps" value="25"></div>
-    <div class="config-row"><label>Соотношение сторон</label><input id="cfgAspect" value="16:9"></div>
-    <div class="config-row"><label>Битрейт видео, Мбит/с (мин..макс)</label><input id="cfgVBitrate" value="90..100"></div>
-    <div class="config-row"><label>Тип развёртки</label><input id="cfgScan" value="Progressive"></div>
-    <div class="config-row"><label>Битовая глубина видео</label><input id="cfgVBitDepth" value="8"></div>
-    <div class="config-row"><label>Количество видеодорожек</label><input id="cfgVTracks" value="1"></div>
-    
-    <div class="section-title">Аудио</div>
-    <div class="config-row"><label>Аудиокодек</label><input id="cfgACodec" value="PCM,AAC"></div>
-    <div class="config-row"><label>Битрейт аудио, кбит/с (мин)</label><input id="cfgABitrate" value="128"></div>
-    <div class="config-row"><label>Каналов в файле</label><input id="cfgAChans" value="2"></div>
-    <div class="config-row"><label>Частота дискретизации, Гц</label><input id="cfgASampleRate" value="48000"></div>
-    <div class="config-row"><label>Битовая глубина аудио</label><input id="cfgABitDepth" value="24"></div>
-    
-    <div class="section-title">Громкость (EBU R128)</div>
-    <div class="config-row"><label>Целевой LUFS Integrated</label><input id="cfgLufs" value="-23"></div>
-    <div class="config-row"><label>Допустимое отклонение, LU</label><input id="cfgLufsTol" value="0.5"></div>
-    <div class="config-row"><label>Максимальный True Peak, dBTP</label><input id="cfgTruePeak" value="-1"></div>
-    <div class="config-row"><label>Loudness Range, LU (мин..макс)</label><input id="cfgLra" value="0..20"></div>
-    
-    <div class="section-title">Тайм-код</div>
-    <div class="config-row"><label>Начальный тайм-код</label><input id="cfgTimecode" value="00:59:52:00"></div>
-  </div>
-</details>
+      <summary>⚙️ Ожидаемые параметры (можно редактировать вручную)</summary>
+      <div style="margin-top:16px">
+        <div class="vq-section-title">Видео</div>
+        <div class="vq-config-row"><label>Контейнер (MOV/MP4/MKV/AVI/MXF)</label><input id="cfgContainer" value="MOV"></div>
+        <div class="vq-config-row"><label>Видеокодек</label><input id="cfgVCodec" value="H264,AVC,PRORES,DNxHD,DNxHR"></div>
+        <div class="vq-config-row"><label>Разрешение</label><input id="cfgResolution" value="3840x2160"></div>
+        <div class="vq-config-row"><label>FPS</label><input id="cfgFps" value="25"></div>
+        <div class="vq-config-row"><label>Соотношение сторон</label><input id="cfgAspect" value="16:9"></div>
+        <div class="vq-config-row"><label>Битрейт видео, Мбит/с (мин..макс)</label><input id="cfgVBitrate" value="90..100"></div>
+        <div class="vq-config-row"><label>Тип развёртки</label><input id="cfgScan" value="Progressive"></div>
+        <div class="vq-config-row"><label>Битовая глубина видео</label><input id="cfgVBitDepth" value="8"></div>
+        <div class="vq-config-row"><label>Количество видеодорожек</label><input id="cfgVTracks" value="1"></div>
+        <div class="vq-section-title">Аудио</div>
+        <div class="vq-config-row"><label>Аудиокодек</label><input id="cfgACodec" value="PCM,AAC"></div>
+        <div class="vq-config-row"><label>Битрейт аудио, кбит/с (мин)</label><input id="cfgABitrate" value="128"></div>
+        <div class="vq-config-row"><label>Каналов в файле</label><input id="cfgAChans" value="2"></div>
+        <div class="vq-config-row"><label>Частота дискретизации, Гц</label><input id="cfgASampleRate" value="48000"></div>
+        <div class="vq-config-row"><label>Битовая глубина аудио</label><input id="cfgABitDepth" value="24"></div>
+        <div class="vq-section-title">Громкость (EBU R128)</div>
+        <div class="vq-config-row"><label>Целевой LUFS Integrated</label><input id="cfgLufs" value="-23"></div>
+        <div class="vq-config-row"><label>Допустимое отклонение, LU</label><input id="cfgLufsTol" value="0.5"></div>
+        <div class="vq-config-row"><label>Максимальный True Peak, dBTP</label><input id="cfgTruePeak" value="-1"></div>
+        <div class="vq-config-row"><label>Loudness Range, LU (мин..макс)</label><input id="cfgLra" value="0..20"></div>
+        <div class="vq-section-title">Тайм-код</div>
+        <div class="vq-config-row"><label>Начальный тайм-код</label><input id="cfgTimecode" value="00:59:52:00"></div>
+      </div>
+    </details>
 
-  
-  <!-- Инструкция для режима "Только звук" -->
-  <div class="audio-help" id="audioHelp" style="display:none">
-    <h4>📖 Как экспортировать аудио из видео</h4>
-    <p>Для проверки громкости очень больших файлов (>4 ГБ) экспортируйте звук отдельно:</p>
-    <ul>
-      <li><strong>Adobe Premiere Pro:</strong> File → Export → Media → Format: <em>Waveform Audio</em> → Export</li>
-      <li><strong>DaVinci Resolve:</strong> Deliver → Format: <em>WAV</em> → Audio Only → Render</li>
-      <li><strong>Final Cut Pro:</strong> File → Share → Export File → Settings: <em>Audio Only</em></li>
-      <li><strong>Avid Media Composer:</strong> File → Output → Export to File → WAV/AIFF</li>
-    </ul>
-    <p style="margin-top:8px"><strong>Параметры экспорта:</strong> WAV, 48 kHz, 24-bit, Stereo (или 5.1 если многоканальный звук)</p>
-  </div>
-  
-  <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
-  <div class="file-info" id="fileInfo"></div>
-</div>
+    <div class="vq-audio-help" id="audioHelp" style="display:none">
+      <h4>📖 Как экспортировать аудио из видео</h4>
+      <p>Для проверки громкости очень больших файлов (&gt;4 ГБ) экспортируйте звук отдельно:</p>
+      <ul>
+        <li><strong>Adobe Premiere Pro:</strong> File → Export → Media → Format: <em>Waveform Audio</em></li>
+        <li><strong>DaVinci Resolve:</strong> Deliver → Format: <em>WAV</em> → Audio Only → Render</li>
+        <li><strong>Final Cut Pro:</strong> File → Share → Export File → Settings: <em>Audio Only</em></li>
+        <li><strong>Avid Media Composer:</strong> File → Output → Export to File → WAV/AIFF</li>
+      </ul>
+      <p style="margin-top:8px"><strong>Параметры экспорта:</strong> WAV, 48 kHz, 24-bit, Stereo</p>
+    </div>
 
+    <div class="vq-progress" id="progress"><div class="vq-progress-bar" id="progressBar"></div></div>
+    <div class="vq-file-info" id="fileInfo"></div>
+  </div>
 
   <div id="results"></div>
 </div>
+</div><!-- /screen-tool -->
 
-<a href="https://t.me/Adam1TBC" target="_blank" rel="noopener" class="tg-contact" title="Связаться с автором проекта">
-  <div class="tg-icon">
-    <svg viewBox="0 0 24 24"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+
+<!-- ══════════════════════════════════════════════════════
+     ЭКРАН 2: СПРАВОЧНИК ТЕСТОВ
+══════════════════════════════════════════════════════ -->
+<div id="screen-ref">
+
+  <div class="ob-wrap">
+    <section class="ob-hero">
+      <div class="ob-hero-badge">Справочник тестов VideoQC</div>
+      <h1>Справочник по<br><span>81 тесту</span></h1>
+      <p>Все тесты системы автоматической проверки качества медиаконтента с кратким описанием и условиями прохождения.</p>
+      <a class="ob-check-link" href="#" onclick="switchScreen('tool');return false;">
+        🔍 Проверить свой файл →
+      </a>
+      <div class="ob-stats-row">
+        <div class="ob-stat-item"><div class="ob-stat-n">8</div><div class="ob-stat-l">Аудиотестов</div></div>
+        <div class="ob-stat-item"><div class="ob-stat-n">17</div><div class="ob-stat-l">Видеотестов</div></div>
+        <div class="ob-stat-item"><div class="ob-stat-n">46</div><div class="ob-stat-l">Тестов метаданных</div></div>
+        <div class="ob-stat-item"><div class="ob-stat-n">6</div><div class="ob-stat-l">HDR тестов</div></div>
+        <div class="ob-stat-item"><div class="ob-stat-n">4</div><div class="ob-stat-l">VOD тестов</div></div>
+      </div>
+    </section>
   </div>
-  <div class="tg-text">
-    <span>@adam1tbc</span>
-    <small>Автор проекта</small>
+
+  <div class="ob-tabs-wrap">
+    <div class="ob-wrap">
+      <div class="ob-tabs" id="obTabs">
+        <a class="ob-tab active" href="#ob-audio">Аудио <span class="ob-tab-count">8</span></a>
+        <a class="ob-tab" href="#ob-video">Видео <span class="ob-tab-count">17</span></a>
+        <a class="ob-tab" href="#ob-container">Контейнер <span class="ob-tab-count">9</span></a>
+        <a class="ob-tab" href="#ob-meta-audio">Аудио мета <span class="ob-tab-count">8</span></a>
+        <a class="ob-tab" href="#ob-meta-video">Видео мета <span class="ob-tab-count">17</span></a>
+        <a class="ob-tab" href="#ob-color">Цвет <span class="ob-tab-count">5</span></a>
+        <a class="ob-tab" href="#ob-other-meta">Прочие мета <span class="ob-tab-count">5</span></a>
+        <a class="ob-tab" href="#ob-hdr">HDR <span class="ob-tab-count">6</span></a>
+        <a class="ob-tab" href="#ob-vod">VOD <span class="ob-tab-count">3</span></a>
+      </div>
+    </div>
   </div>
-</a>
+
+  <div class="ob-wrap" id="ob-all-tests">
+
+    <!-- Поиск -->
+    <div class="ob-search-wrap" style="padding-top:24px">
+      <div class="ob-search-inner">
+        <svg class="ob-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="obSearchInput" placeholder="Поиск теста… (⌘K)">
+        <span class="ob-search-kbd">⌘K</span>
+      </div>
+    </div>
+
+    <!-- ── АУДИО ── -->
+    <section class="ob-section" id="ob-audio">
+      <div class="ob-section-title">
+        <span class="ob-section-num">01</span><h2>Аудиотесты</h2><span class="ob-section-cnt">8 тестов</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="интегральный уровень громкости нормализация lufs loudness ebu r128">
+          <div class="ob-test-num">01</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Интегральный уровень громкости и нормализация</div>
+            <div class="ob-test-desc">Проверяет соответствие интегральной громкости целевому уровню по стандарту <code>EBU R 128</code>. Может выполнить нормализацию, если громкость отклоняется от заданного значения. Тест провален, если фактический уровень LUFS выходит за пределы допустимого отклонения.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-audio">Аудио</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="параметры громкости lra loudness range short-term momentary true peak sample peak dbtp">
+          <div class="ob-test-num">02</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Параметры громкости</div>
+            <div class="ob-test-desc">Проверяет сразу несколько параметров: диапазон громкости <code>LRA</code>, максимальные значения Short-term, Momentary, Sample Peak <code>dBFS</code> и True Peak <code>dBTP</code>. Результаты корректны только при отключённой нормализации.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-audio">Аудио</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="тишина silence отсутствие звука дорожки каналы">
+          <div class="ob-test-num">03</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Тишина</div>
+            <div class="ob-test-desc">Ищет полное отсутствие звука на всех дорожках или на дорожках, указанных маппингом. Тест провален, если тишина обнаружена хотя бы на одном канале. Пропускается, если длительность файла меньше порогового интервала.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-audio">Аудио</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="перегрузка клиппинг clipping срезы искажение">
+          <div class="ob-test-num">04</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Перегрузка</div>
+            <div class="ob-test-desc">Ищет плоские участки сигнала с амплитудой, близкой к максимальному уровню (<em>clipping</em>). Настраивается порог количества подряд идущих семплов на максимуме. Тест провален при обнаружении перегрузки хотя бы в одном канале.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-audio">Аудио</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="несоответствие стерео моно сигнал стереопара">
+          <div class="ob-test-num">05</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Несоответствие стерео / моносигнала</div>
+            <div class="ob-test-desc">Определяет наличие моносигнала в стереопаре (L и R идентичны) или стереосигнала там, где ожидается моно. Работает только со стереопарами, настроенными в маппинге теста №01.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-audio">Аудио</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="сдвиг аудиофаз фаза противофаза stereo">
+          <div class="ob-test-num">06</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Сдвиг аудиофаз</div>
+            <div class="ob-test-desc">Выявляет смещение фазы одного канала стереопары относительно другого. В предельном случае — противофаза: суммарный сигнал равен нулю. Тест провален, если хотя бы в одной стереопаре найдены интервалы со сдвигом фаз.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-audio">Аудио</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="тестовый сигнал тон 1khz 1кгц частота">
+          <div class="ob-test-num">07</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Тестовый сигнал</div>
+            <div class="ob-test-desc">Ищет тестовый тональный сигнал заданной частоты (обычно <code>1 kHz</code>) на всех дорожках или на дорожках по маппингу. Тест провален, если тестовый сигнал найден хотя бы в одном канале.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-audio">Аудио</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="отсутствие аудиосигнала нули нулевой сигнал">
+          <div class="ob-test-num">08</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Отсутствие аудиосигнала</div>
+            <div class="ob-test-desc">Ищет сегменты, где все сэмплы заполнены нулями — то есть сигнала нет совсем (в отличие от теста «Тишина», который измеряет уровень громкости). Тест провален при обнаружении нулевых сегментов.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-audio">Аудио</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── ВИДЕО ── -->
+    <section class="ob-section" id="ob-video">
+      <div class="ob-section-title">
+        <span class="ob-section-num">02</span><h2>Видеотесты</h2><span class="ob-section-cnt">17 тестов</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="артефакты потери данных дефект кадр">
+          <div class="ob-test-num">09</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Артефакты потери данных</div>
+            <div class="ob-test-desc">Выявляет артефакты потери данных в кадрах (хаотичные пиксели, повреждённые области). Тест провален, если артефакты обнаружены.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="артефакты макроблоки 16x16 пикселей блочность">
+          <div class="ob-test-num">10</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Артефакты потери данных в макроблоках</div>
+            <div class="ob-test-desc">Более точная версия предыдущего теста: кадр разбивается на блоки <code>16×16</code> пикселей, и в каждом ищутся повреждения. Позволяет локализовать дефект внутри кадра.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="артефакты сжатия compression квантование потери блочность размытие">
+          <div class="ob-test-num">11</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Артефакты сжатия</div>
+            <div class="ob-test-desc">Ищет дефекты, вызванные потерями при сжатии: блочность, размытие, ореолы. Тест провален, если интервалы с артефактами обнаружены.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="микропланы flash freeze кадр идентичный вспышка заморозка">
+          <div class="ob-test-num">12</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Микропланы</div>
+            <div class="ob-test-desc">Определяет серии одинаковых кадров, резко отличающихся от соседних (вспышки, заморозка). Использует классический алгоритм сравнения кадров.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="микропланы машинное обучение ml нейросеть ai">
+          <div class="ob-test-num">13</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Микропланы (алгоритмы машинного обучения)</div>
+            <div class="ob-test-desc">Аналог теста №12, но использует ML-алгоритмы. Может обнаруживать более тонкие дефекты, незаметные классическому алгоритму.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="калибровочные таблицы color bars цветные полосы testcard тестовая карта">
+          <div class="ob-test-num">14</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Калибровочные таблицы</div>
+            <div class="ob-test-desc">Ищет кадры с тестовыми таблицами в программном материале. Поддерживает разрешения от <code>720×576</code> до <code>4096×1716</code>. Тест провален, если таблица обнаружена.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="стоп-кадры freeze одинаковые кадры подряд зависание">
+          <div class="ob-test-num">15</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Стоп-кадры</div>
+            <div class="ob-test-desc">Ищет последовательности полностью одинаковых кадров (заморозка видео). Отличается от микропланов тем, что ищет именно «зависание» без резкого изменения.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="чёрные кадры black frame темные пустое изображение">
+          <div class="ob-test-num">16</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Чёрные кадры</div>
+            <div class="ob-test-desc">Ищет кадры, представляющие собой полностью чёрное поле. Тест провален при обнаружении таких кадров. Может учитывать наличие аудиосигнала (опция «Учитывать наличие звука»).</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="цветные кадры solid color full screen однородный цвет">
+          <div class="ob-test-num">17</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Цветные кадры</div>
+            <div class="ob-test-desc">Ищет кадры, заполненные однородным цветом во весь экран. Тест провален при обнаружении таких кадров.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="чёрные полосы каше letterbox pillarbox windowbox маски рамка">
+          <div class="ob-test-num">18</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Чёрные полосы по краям (каше)</div>
+            <div class="ob-test-desc">Определяет тип и наличие чёрных полос: <code>Letterbox</code> (горизонтальные), <code>Pillarbox</code> (вертикальные), <code>Windowbox</code> (со всех сторон). Тест провален при обнаружении любого типа каше.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="гребёнка interlacing чересстрочная зазубренность строки">
+          <div class="ob-test-num">19</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Гребёнка</div>
+            <div class="ob-test-desc">Ищет дефект интерлейсинга — зазубренность краёв движущихся объектов, возникающую из-за несостыковки чётных и нечётных строк. Алгоритм сравнивает метрики между соседними кадрами.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="детектирование признаки чересстрочной развёртки interlaced tff bff сцены">
+          <div class="ob-test-num">20</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Детектирование признаков чересстрочной развёртки</div>
+            <div class="ob-test-desc">В отличие от «Гребёнки», объединяет отдельные дефектные кадры в сцены. Определяет порядок полей: <code>TFF</code> (верхнее первое) или <code>BFF</code> (нижнее первое). Выявляет тонкие дефекты, не всегда заметные глазу.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="уровень чёрного белого luma яркость 16 235 bt709">
+          <div class="ob-test-num">21</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Уровень чёрного и белого</div>
+            <div class="ob-test-desc">Ищет пиксели, чья яркостная компонента выходит за допустимый диапазон <code>16–235</code> (8-bit) или <code>63–941</code> (10-bit). По умолчанию допускается до 10% бракованных пикселей в кадре.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="уровень насыщенности vectorscope gamut saturation цвет">
+          <div class="ob-test-num">22</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Уровень насыщенности</div>
+            <div class="ob-test-desc">Моделирует работу вектороскопа: вычисляет границы корректной цветности и попиксельно проверяет каждый кадр. Пиксели вне допустимого gamut считаются бракованными.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="ошибки декодирования видео decode error">
+          <div class="ob-test-num">23</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Ошибки декодирования видео</div>
+            <div class="ob-test-desc">Определяет ошибки, возникающие при декодировании отдельных кадров (AC EOB marker, Concealing bitstream errors и пр.). Тест провален, если найдены кадры с ошибками декодирования.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="gamut ошибки EBU R103 цвет выход диапазон bt601 bt709 bt2020">
+          <div class="ob-test-num">24</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Gamut-ошибки</div>
+            <div class="ob-test-desc">Проверяет выход цветовых компонент пикселей за границы «Preferred Min/Max» по стандарту <code>EBU R 103</code>. Применяется матрица <code>BT.601</code> / <code>BT.709</code> / <code>BT.2020</code> в зависимости от разрешения.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="детектирование шума noise grain зернистость">
+          <div class="ob-test-num">25</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Детектирование шума</div>
+            <div class="ob-test-desc">Ищет кадры с чрезмерной зашумлённостью. Алгоритм работает по скользящему окну, поэтому возможны ложные срабатывания на высокодетализированных сценах (трава, рябь воды, звёздное небо).</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="артефакты upconversion upscale масштаб апскейл">
+          <div class="ob-test-num">78</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Артефакты upconversion</div>
+            <div class="ob-test-desc">Выявляет артефакты, возникающие при искусственном увеличении разрешения (upscale). Тест провален, если найдены интервалы с признаками неправильного масштабирования.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="цветные линии горизонтальная полоса строка дефект">
+          <div class="ob-test-num">75</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Цветные линии</div>
+            <div class="ob-test-desc">Ищет горизонтальные полосы шириной 1–6 пикселей, чья насыщенность и яркость резко отличается от соседних строк. Тест провален при обнаружении таких линий хотя бы в одном кадре.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="уровень цветовых компонент UV хрома chroma 16 240">
+          <div class="ob-test-num">76</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Уровень цветовых компонент</div>
+            <div class="ob-test-desc">Аналог теста «Уровень чёрного и белого» для цветовых компонент <code>U</code> и <code>V</code>. Допустимый диапазон по умолчанию <code>16–240</code> (8-bit). Порог бракованных пикселей по умолчанию 1%.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="интегральная метрика качества vmaf score composite">
+          <div class="ob-test-num">74</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Интегральная метрика качества</div>
+            <div class="ob-test-desc">Агрегирует результаты нескольких тестов в единую числовую метрику: Артефакты сжатия, Шум, Микропланы, Таблицы, Стоп-кадры, Гребёнка, Уровень ЧБ, Насыщенность, Чёрные кадры. По умолчанию уровень важности «Низкий».</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-video">Видео</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── КОНТЕЙНЕР ── -->
+    <section class="ob-section" id="ob-container">
+      <div class="ob-section-title">
+        <span class="ob-section-num">03</span><h2>Тесты контейнера</h2><span class="ob-section-cnt">9 тестов</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="тип контейнера mxf mov mp4 ts ps формат">
+          <div class="ob-test-num">26</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Тип контейнера</div>
+            <div class="ob-test-desc">Сравнивает фактический тип контейнера (из метаданных) с ожидаемым (из расширения файла). Для <code>MXF</code> тест пройден только если это <code>MXF OP-1a</code>.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="ошибки PS контейнер mpeg ps program stream">
+          <div class="ob-test-num">27</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Ошибки PS-контейнера</div>
+            <div class="ob-test-desc">Специфичен для <code>MPEG PS</code>. Проверяет корректность заголовков всех пакетов и наличие кода окончания файла <code>00 00 01 B9</code>. Пропускается для всех форматов, кроме PS.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="ошибки TS контейнер transport stream pat pmt pcr sdt">
+          <div class="ob-test-num">28</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Ошибки TS-контейнера</div>
+            <div class="ob-test-desc">Специфичен для <code>MPEG TS</code>. Проверяет сервисную информацию: PAT, PMT, PCR, SDT, BAT, TDT, TOT, CAT, синхробайты, TEI, TSC и др. Каждая ошибка может быть настроена как критическая.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="целостность контейнера integrity заголовок footer mxf mp4">
+          <div class="ob-test-num">29</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Целостность контейнера</div>
+            <div class="ob-test-desc">Проверяет целостность контейнера по набору критериев (заголовок, partition pack, footer, MDAT-атом и пр.). Для каждого критерия можно отключить влияние на итоговый статус. Пропускается для <code>TS/M2TS</code>.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="ошибки непрерывности таймкодов timecode sequence xdcam mxf">
+          <div class="ob-test-num">30</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Ошибки непрерывности последовательности таймкодов</div>
+            <div class="ob-test-desc">Извлекает таймкоды из файла и проверяет их непрерывность. Работает только с форматом <code>XDCAM HD422</code> (MXF + MPEG-2 422P@HL).</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="корректность заголовка title поток stream символы">
+          <div class="ob-test-num">31</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Корректность заголовка</div>
+            <div class="ob-test-desc">Проверяет параметр Title каждого потока файла на наличие только допустимых символов. Тест провален, если заголовок содержит запрещённые символы. Если Title отсутствует — тест пройден.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="конфигурация треков tracks video audio text timecode ancillary">
+          <div class="ob-test-num">32</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Конфигурация треков</div>
+            <div class="ob-test-desc">Проверяет фактическое количество треков каждого типа (Видео, Аудио, Текст, Таймкод, Другое, Изображение, Меню) по заданным правилам. Также может проверять отсутствие треков с меткой <code>Ancillary data</code>.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="параметры mxf контейнер wrapping mode partition index rip">
+          <div class="ob-test-num">62</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Параметры MXF контейнера</div>
+            <div class="ob-test-desc">Проверяет специфичные для <code>MXF</code> параметры: Format Version, Profile, Resolution, Wrapping Mode (<code>FrameWrapped</code>/<code>ClipWrapped</code>), Partitions State, Index Table, RIP Presence, Picture Essence Coding и др.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="профиль формата format profile op-1a quicktime">
+          <div class="ob-test-num">63</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Профиль формата</div>
+            <div class="ob-test-desc">Сравнивает фактический профиль контейнера с ожидаемым списком. Например: <code>OP-1a</code> для MXF. Тест провален, если фактическое значение не найдено в списке допустимых.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── АУДИО МЕТА ── -->
+    <section class="ob-section" id="ob-meta-audio">
+      <div class="ob-section-title">
+        <span class="ob-section-num">04</span><h2>Метаданные аудио</h2><span class="ob-section-cnt">8 тестов</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="аудиокодек pcm aac mp3 codec дорожка">
+          <div class="ob-test-num">33</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Аудиокодек</div>
+            <div class="ob-test-desc">Сравнивает фактический кодек каждой аудиодорожки с допустимым списком (<code>PCM</code>, <code>AAC</code> и др.). Тест провален, если хотя бы для одной дорожки кодек не совпал или не найден в метаданных.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="битрейт аудио audio bitrate кбит">
+          <div class="ob-test-num">34</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Битрейт аудио</div>
+            <div class="ob-test-desc">Сопоставляет фактический битрейт каждой аудиодорожки с заданным правилом (например, «= 1100 Кб/с»). Значение извлекается из метаданных.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="количество аудиоканалов файл суммарное">
+          <div class="ob-test-num">50</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Количество аудиоканалов в файле</div>
+            <div class="ob-test-desc">Проверяет суммарное количество аудиоканалов во всём файле (сумма каналов по всем трекам). Тест провален, если фактическое число не соответствует правилу.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="количество аудиоканалов трек per track">
+          <div class="ob-test-num">51</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Количество аудиоканалов в треке</div>
+            <div class="ob-test-desc">Проверяет количество каналов для каждого аудиотрека отдельно. Тест провален, если хотя бы у одного трека значение не соответствует правилу или параметр не найден.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="частота дискретизации sample rate 48000 44100 hz герц">
+          <div class="ob-test-num">52</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Частота дискретизации аудио</div>
+            <div class="ob-test-desc">Сравнивает частоту дискретизации каждой аудиодорожки с допустимым списком. Стандарт для вещания — <code>48 000 Гц</code>. Тест провален при несоответствии хотя бы одной дорожки.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="битовая глубина аудио bit depth 16 24 32 pcm бит">
+          <div class="ob-test-num">53</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Битовая глубина аудио</div>
+            <div class="ob-test-desc">Проверяет битность аудио каждой дорожки. Применимо только к <code>PCM</code>: для других кодеков тест пропускается. Стандарт вещания — <code>24-bit</code>.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="схема каналов channel layout LR mono surround 5.1">
+          <div class="ob-test-num">54</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Схема каналов</div>
+            <div class="ob-test-desc">Сравнивает фактическую схему каналов (<code>L R</code>, <code>C L R Ls Rs LFE</code> и др.) с допустимым списком для каждой аудиодорожки. Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="языковые теги аудиодорожек language tag lang ru en">
+          <div class="ob-test-num">77</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Проверка языковых тегов аудиодорожек</div>
+            <div class="ob-test-desc">Извлекает языковые теги аудиодорожек и сравнивает с допустимыми значениями. Можно задать ожидаемые теги для конкретных дорожек и отдельно — для «остальных». Тест провален, если теги не найдены или не соответствуют.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── ВИДЕО МЕТА ── -->
+    <section class="ob-section" id="ob-meta-video">
+      <div class="ob-section-title">
+        <span class="ob-section-num">05</span><h2>Метаданные видео</h2><span class="ob-section-cnt">17 тестов</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="видеокодек h264 prores dnxhd mpeg2 codec h.265 hevc">
+          <div class="ob-test-num">35</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Видеокодек</div>
+            <div class="ob-test-desc">Сравнивает фактический видеокодек (из метаданных) со списком допустимых. Тест провален, если кодек не найден в списке.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="размер изображения ширина высота resolution 1920 1080 576 4k uhd">
+          <div class="ob-test-num">36</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Размер изображения (ширина/высота)</div>
+            <div class="ob-test-desc">Сопоставляет фактическое разрешение кадра с допустимым списком значений. Тест провален, если разрешение не соответствует ни одному из ожидаемых.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="соотношение сторон aspect ratio 16:9 4:3">
+          <div class="ob-test-num">37</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Соотношение сторон</div>
+            <div class="ob-test-desc">Сравнивает фактическое соотношение сторон кадра (<code>16:9</code>, <code>4:3</code> и др.) с допустимым.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="соотношение сторон пикселя PAR pixel aspect ratio квадратный">
+          <div class="ob-test-num">38</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Соотношение сторон пикселя (PAR)</div>
+            <div class="ob-test-desc">Сравнивает Pixel Aspect Ratio с допустимым. Для HD-вещания стандарт — <code>1:1</code> (Square). Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="количество кадров в секунду fps framerate 25 50 29.97 24">
+          <div class="ob-test-num">39</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Количество кадров в секунду (FPS)</div>
+            <div class="ob-test-desc">Сравнивает фактический FPS из метаданных с допустимым списком значений. Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="битрейт видео метаданные cbr mbps мегабит">
+          <div class="ob-test-num">40</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Битрейт видео (метаданные)</div>
+            <div class="ob-test-desc">Сравнивает битрейт из метаданных видеодорожки с заданным диапазоном. Поддерживает только <code>CBR</code> (константный) битрейт.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="реальный битрейт видео фактический вычисленный размер дорожки">
+          <div class="ob-test-num">41</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Реальный битрейт видео</div>
+            <div class="ob-test-desc">Вычисляет фактический битрейт путём обхода всех кадров и суммирования размеров пакетов. Более точен, чем значение из метаданных.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="тип развёртки progressive interlaced paff">
+          <div class="ob-test-num">42</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Тип развёртки</div>
+            <div class="ob-test-desc">Сравнивает тип развёртки из метаданных (<code>Progressive</code>, <code>Interlaced</code>, <code>PAFF</code>) с ожидаемым. Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="порядок полей field order tff bff upper lower нижнее верхнее">
+          <div class="ob-test-num">43</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Порядок полей</div>
+            <div class="ob-test-desc">Проверяет последовательность полей (<code>TFF</code> — верхнее первое или <code>BFF</code> — нижнее первое) для чересстрочного видео. Пропускается для прогрессивного.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="битовая глубина видео bit depth 8 10 12 бит цвет">
+          <div class="ob-test-num">55</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Битовая глубина видео</div>
+            <div class="ob-test-desc">Сравнивает фактическую глубину цвета видеодорожки (<code>8</code>, <code>10</code>, <code>12-bit</code>) с допустимым значением.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="профиль уровень формата format profile high main baseline h264">
+          <div class="ob-test-num">67</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Профиль и уровень формата</div>
+            <div class="ob-test-desc">Проверяет параметр <code>Format Profile</code> видеодорожки. Например <code>4:2:2@High</code> для MPEG-2 или <code>High 4:4:4 Predictive@L4</code> для H.264.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="длительность видео duration секунды минуты">
+          <div class="ob-test-num">65</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Длительность видео</div>
+            <div class="ob-test-desc">Сравнивает фактическую длительность видеодорожки с заданным правилом (например «= 120 секунд»). Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="количество видеодорожек video track count">
+          <div class="ob-test-num">66</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Количество видеодорожек</div>
+            <div class="ob-test-desc">Проверяет, что число видеодорожек соответствует заданному правилу (обычно «= 1»). Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="длительность последнего кадра last frame duration мс">
+          <div class="ob-test-num">68</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Длительность последнего кадра</div>
+            <div class="ob-test-desc">Сравнивает длительность последнего кадра с заданным правилом. Можно также указать, что этот параметр должен отсутствовать в метаданных.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="типы кодирования кадров GOP i-frame p-frame b-frame">
+          <div class="ob-test-num">64</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Типы кодирования кадров</div>
+            <div class="ob-test-desc">Ищет нарушения в последовательности типов кадров <code>I</code>, <code>P</code>, <code>B</code>, <code>S</code>, <code>SI</code>, <code>SP</code>, <code>BI</code>. Для каждого типа задаётся правило проверки последовательности.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="метаданные GOP структура M N интервал i-frame p-frame">
+          <div class="ob-test-num">70</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Метаданные GOP структуры</div>
+            <div class="ob-test-desc">Определяет наличие регулярной GOP-структуры и вычисляет параметры <code>M</code> (интервал между P-кадрами) и <code>N</code> (интервал между I-кадрами). Тест провален, если структура не найдена или параметры не совпадают.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="соответствие битовой глубины метаданные кадр несоответствие">
+          <div class="ob-test-num">81</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Соответствие битовой глубины в метаданных и в кадре</div>
+            <div class="ob-test-desc">Сопоставляет битовую глубину из метаданных файла с фактической глубиной в каждом кадре. Выводит интервалы, где значения не совпадают.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── ЦВЕТ ── -->
+    <section class="ob-section" id="ob-color">
+      <div class="ob-section-title">
+        <span class="ob-section-num">06</span><h2>Метаданные кодирования цвета</h2><span class="ob-section-cnt">5 тестов</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="цветовая субдискретизация chroma subsampling 4:2:2 4:2:0 4:4:4">
+          <div class="ob-test-num">44</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Цветовая субдискретизация</div>
+            <div class="ob-test-desc">Сравнивает фактическую цветовую субдискретизацию (<code>4:2:2</code>, <code>4:2:0</code>, <code>4:4:4</code>) с допустимым списком из метаданных файла.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="цветовой диапазон color range limited full video">
+          <div class="ob-test-num">45</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Цветовой диапазон</div>
+            <div class="ob-test-desc">Проверяет параметр <code>Color range</code> в метаданных: <code>Limited</code> (16–235) для вещания или <code>Full</code> (0–255) для компьютерного использования. Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="основные цвета color primaries bt709 bt2020 bt601">
+          <div class="ob-test-num">46</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Основные цвета (Color primaries)</div>
+            <div class="ob-test-desc">Сравнивает цветовой примари из метаданных (<code>BT.709</code>, <code>BT.2020</code>, <code>BT.601</code>) с допустимым списком. Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="характеристики трансфера transfer characteristics gamma eotf">
+          <div class="ob-test-num">47</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Характеристики трансфера</div>
+            <div class="ob-test-desc">Проверяет параметр <code>Transfer characteristics</code> в метаданных видео. Тест провален, если фактическое значение не совпадает с допустимым.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="коэффициенты матрицы matrix coefficients bt709 bt601 bt2020">
+          <div class="ob-test-num">48</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Коэффициенты матрицы</div>
+            <div class="ob-test-desc">Проверяет параметр <code>Matrix coefficients</code> в метаданных (<code>BT.709</code>, <code>BT.601</code>, <code>BT.2020 constant</code>). Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── ПРОЧИЕ МЕТА ── -->
+    <section class="ob-section" id="ob-other-meta">
+      <div class="ob-section-title">
+        <span class="ob-section-num">07</span><h2>Прочие метаданные</h2><span class="ob-section-cnt">5 тестов</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="начальный таймкод start timecode materialtime sourcetime smpte">
+          <div class="ob-test-num">49</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Начальный таймкод</div>
+            <div class="ob-test-desc">Проверяет все найденные таймкоды в файле (<code>MaterialTimecode</code>, <code>SourceTimecode</code>, <code>SmpteTcTimecode</code>, <code>DvSubcode</code>) на соответствие ожидаемым значениям. Тест провален, если хотя бы один таймкод не совпадает или отсутствует.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="тип битрейта видео cbr vbr abr константный переменный">
+          <div class="ob-test-num">79</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Тип битрейта видео</div>
+            <div class="ob-test-desc">Сравнивает тип битрейта из метаданных (<code>CBR</code>, <code>VBR</code>) с допустимым. Тест провален, если параметр не найден или не совпадает.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="сравнение длительности звук видео audio video duration разница">
+          <div class="ob-test-num">69</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Сравнение длительности звука и видео</div>
+            <div class="ob-test-desc">Сравнивает длительность видеодорожки с длительностью каждой аудиодорожки. Тест провален, если разница превышает допустимое значение (в миллисекундах).</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="непрерывность временных меток pts dts разрыв timestamp">
+          <div class="ob-test-num">71</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Непрерывность временных меток PTS и DTS</div>
+            <div class="ob-test-desc">Проверяет метки <code>PTS</code> (Presentation Timestamp) и <code>DTS</code> (Decoding Timestamp) на непрерывность. Тест провален, если обнаружены разрывы.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="изменение размера черных полос каше letterbox динамическое">
+          <div class="ob-test-num">80</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Изменение размера чёрных полос (каше)</div>
+            <div class="ob-test-desc">Отслеживает динамическое изменение размеров чёрных полей на протяжении видео. Если размер каше меняется — кадр считается бракованным.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-meta">Мета</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── HDR ── -->
+    <section class="ob-section" id="ob-hdr">
+      <div class="ob-section-title">
+        <span class="ob-section-num">08</span><h2>HDR тесты</h2><span class="ob-section-cnt">6 тестов</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="система преобразования яркости PQ HLG HDR eotf">
+          <div class="ob-test-num">56</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Система преобразования яркости</div>
+            <div class="ob-test-desc">Сравнивает фактическую систему EOTF из метаданных с ожидаемой: <code>PQ</code> (Perceptual Quantizer) или <code>HLG</code> (Hybrid-Log Gamma). Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-hdr">HDR</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="минимальная максимальная яркость мастеринг дисплей nits кд м2">
+          <div class="ob-test-num">57</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Минимальная/максимальная яркость мастеринг-дисплея</div>
+            <div class="ob-test-desc">Проверяет значения <code>min</code> и <code>max</code> яркости дисплея мастеринга в кд/м². Минимум — до 4 знаков после запятой, максимум — до 2. Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-hdr">HDR</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="координаты основных цветов цветовое пространство RGB примари xy">
+          <div class="ob-test-num">58</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Координаты основных цветов в цветовом пространстве</div>
+            <div class="ob-test-desc">Проверяет координаты цветности <code>x, y</code> для красного, зелёного и синего каналов дисплея мастеринга. Тест провален, если координаты не совпадают с ожидаемыми.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-hdr">HDR</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="координаты точки белого white point xy цветность">
+          <div class="ob-test-num">59</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Координаты точки белого в цветовом пространстве</div>
+            <div class="ob-test-desc">Проверяет координаты цветности белой точки дисплея мастеринга <code>(x, y)</code>. Тест провален при несоответствии.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-hdr">HDR</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="MaxCLL максимальный уровень яркости пикселя HDR content light level">
+          <div class="ob-test-num">60</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">MaxCLL — максимальный уровень яркости пикселя</div>
+            <div class="ob-test-desc">Сравнивает значение <code>MaxCLL</code> (Maximum Content Light Level — самый яркий пиксель во всём потоке) с ожидаемым. Только для HDR-контента.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-hdr">HDR</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="MaxFALL максимальный средний уровень яркости кадра HDR frame average">
+          <div class="ob-test-num">61</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">MaxFALL — максимальный средний уровень яркости кадра</div>
+            <div class="ob-test-desc">Сравнивает <code>MaxFALL</code> (Maximum Frame Average Light Level — наивысшая средняя яркость кадра в потоке) с ожидаемым значением. Только для HDR-контента.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-hdr">HDR</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── VOD ── -->
+    <section class="ob-section" id="ob-vod">
+      <div class="ob-section-title">
+        <span class="ob-section-num">09</span><h2>VOD тесты</h2><span class="ob-section-cnt">3 теста</span>
+      </div>
+      <div class="ob-test-table">
+
+        <div class="ob-test-row" data-search="наличие доступность сегментов плейлист HLS m3u8 DASH">
+          <div class="ob-test-num">72</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Наличие и доступность сегментов из плейлистов</div>
+            <div class="ob-test-desc">Проверяет доступность всех сегментов, перечисленных в плейлисте (<code>HLS</code>, <code>DASH</code>). Тест провален, если хотя бы один сегмент недоступен.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-vod">VOD</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="субтитры closed captions subtitle CC язык rendition">
+          <div class="ob-test-num">73</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Субтитры / Closed Captions</div>
+            <div class="ob-test-desc">Проверяет наличие в плейлисте rendition-ов типа <code>SUBTITLE</code> и <code>CLOSED-CAPTIONS</code> с заданными языками. Можно включить проверку «полного соответствия» — тест провален, если найдены дополнительные неожиданные субтитры.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-vod">VOD</span></div>
+        </div>
+
+        <div class="ob-test-row" data-search="непрерывность временных меток PTS DTS VOD сегмент стык">
+          <div class="ob-test-num">71</div>
+          <div class="ob-test-body">
+            <div class="ob-test-name">Непрерывность временных меток PTS и DTS (VOD)</div>
+            <div class="ob-test-desc">В контексте VOD проверяет временны́е метки на стыках сегментов. Тест провален при обнаружении разрывов <code>PTS</code> или <code>DTS</code>.</div>
+          </div>
+          <div class="ob-test-badge"><span class="ob-badge ob-badge-vod">VOD</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="ob-footer">
+      <p>VideoQC — инструмент проверки качества медиаконтента для ГИТР</p>
+    </footer>
+
+  </div><!-- /ob-all-tests -->
+</div><!-- /screen-ref -->
+
 
 <!-- MediaInfo -->
 <script src="https://unpkg.com/mediainfo.js@0.1.9/dist/mediainfo.min.js"></script>
 
-
 <script>
-// ============================================================
-//  ПРЕСЕТЫ ГИТР
-// ============================================================
+/* ══════════════════════════════════════════════════════
+   ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
+══════════════════════════════════════════════════════ */
+function switchScreen(screen) {
+  const isRef = screen === 'ref';
+  document.getElementById('screen-tool').style.display  = isRef ? 'none' : 'block';
+  document.getElementById('screen-ref').style.display = isRef ? 'block' : 'none';
+  document.getElementById('btn-tool').classList.toggle('active',  !isRef);
+  document.getElementById('btn-ref').classList.toggle('active',  isRef);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ══════════════════════════════════════════════════════
+   ПРЕСЕТЫ ГИТР
+══════════════════════════════════════════════════════ */
 const PRESETS = {
   master_hd_1: {
     name: 'Мастер-файл HD (1 курс)',
     desc: 'ProRes 422 / DNxHR HQX, 1920×1080, 25p · LRA ≤ 18 LU',
     type: 'master', quality: 'hd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'PRORES,DNxHR,DNxHD', cfgResolution: '1920x1080', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '100..1000', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '0..18', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'PRORES,DNxHR,DNxHD', cfgResolution:'1920x1080', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'100..1000', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'0..18', cfgTimecode:'00:59:52:00' }
   },
   master_hd_2_5_doc: {
     name: 'Мастер-файл HD (2-5 курс, документальный)',
     desc: 'ProRes 422 / DNxHR HQX, 1920×1080, 25p · LRA 5-10 LU',
     type: 'master', quality: 'hd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'PRORES,DNxHR,DNxHD', cfgResolution: '1920x1080', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '100..1000', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '5..10', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'PRORES,DNxHR,DNxHD', cfgResolution:'1920x1080', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'100..1000', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'5..10', cfgTimecode:'00:59:52:00' }
   },
   master_hd_2_5_fic: {
     name: 'Мастер-файл HD (2-5 курс, игровой)',
     desc: 'ProRes 422 / DNxHR HQX, 1920×1080, 25p · LRA 12-16 LU',
     type: 'master', quality: 'hd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'PRORES,DNxHR,DNxHD', cfgResolution: '1920x1080', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '100..1000', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '12..16', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'PRORES,DNxHR,DNxHD', cfgResolution:'1920x1080', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'100..1000', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'12..16', cfgTimecode:'00:59:52:00' }
   },
   master_uhd_2_5_doc: {
     name: 'Мастер-файл UHD (2-5 курс, документальный)',
     desc: 'ProRes 422 / DNxHR HQX, 3840×2160, 25p · LRA 5-10 LU',
     type: 'master', quality: 'uhd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'PRORES,DNxHR,DNxHD', cfgResolution: '3840x2160', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '400..2000', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '5..10', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'PRORES,DNxHR,DNxHD', cfgResolution:'3840x2160', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'400..2000', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'5..10', cfgTimecode:'00:59:52:00' }
   },
   master_uhd_2_5_fic: {
     name: 'Мастер-файл UHD (2-5 курс, игровой)',
     desc: 'ProRes 422 / DNxHR HQX, 3840×2160, 25p · LRA 12-16 LU',
     type: 'master', quality: 'uhd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'PRORES,DNxHR,DNxHD', cfgResolution: '3840x2160', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '400..2000', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '12..16', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'PRORES,DNxHR,DNxHD', cfgResolution:'3840x2160', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'400..2000', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'12..16', cfgTimecode:'00:59:52:00' }
   },
   copy_hd_1: {
     name: 'Мастер-копия HD (1 курс)',
     desc: 'h.264 .mov, 1920×1080, 25p, 10-14 Мбит/с · LRA ≤ 18 LU',
     type: 'broadcast', quality: 'hd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'H264,AVC', cfgResolution: '1920x1080', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '10..14', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM,AAC', cfgABitrate: '128', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '0..18', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'H264,AVC', cfgResolution:'1920x1080', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'10..14', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM,AAC', cfgABitrate:'128', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'0..18', cfgTimecode:'00:59:52:00' }
   },
   copy_hd_2_3_doc: {
     name: 'Мастер-копия HD (2-3 курс, документальный)',
     desc: 'h.264 .mov, 1920×1080, 25p, 30-35 Мбит/с · LRA 5-10 LU',
     type: 'broadcast', quality: 'hd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'H264,AVC', cfgResolution: '1920x1080', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '30..35', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM,AAC', cfgABitrate: '128', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '5..10', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'H264,AVC', cfgResolution:'1920x1080', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'30..35', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM,AAC', cfgABitrate:'128', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'5..10', cfgTimecode:'00:59:52:00' }
   },
   copy_hd_2_3_fic: {
     name: 'Мастер-копия HD (2-3 курс, игровой)',
     desc: 'h.264 .mov, 1920×1080, 25p, 30-35 Мбит/с · LRA 12-16 LU',
     type: 'broadcast', quality: 'hd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'H264,AVC', cfgResolution: '1920x1080', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '30..35', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM,AAC', cfgABitrate: '128', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '12..16', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'H264,AVC', cfgResolution:'1920x1080', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'30..35', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM,AAC', cfgABitrate:'128', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'12..16', cfgTimecode:'00:59:52:00' }
   },
   copy_sd_4_5_doc: {
     name: 'Мастер-копия SD (4-5 курс, документальный)',
     desc: '.mp4, 640×480, 25p, h.264, 1 Мбит/с, AAC · LRA 5-10 LU',
     type: 'broadcast', quality: 'sd',
-    config: { cfgContainer: 'MP4', cfgVCodec: 'H264,AVC', cfgResolution: '640x480', cfgFps: '25', cfgAspect: '4:3', cfgVBitrate: '0.8..1.2', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'AAC', cfgABitrate: '120', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '16', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '5..10', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MP4', cfgVCodec:'H264,AVC', cfgResolution:'640x480', cfgFps:'25', cfgAspect:'4:3', cfgVBitrate:'0.8..1.2', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'AAC', cfgABitrate:'120', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'16', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'5..10', cfgTimecode:'00:59:52:00' }
   },
   copy_sd_4_5_fic: {
     name: 'Мастер-копия SD (4-5 курс, игровой)',
     desc: '.mp4, 640×480, 25p, h.264, 1 Мбит/с, AAC · LRA 12-16 LU',
     type: 'broadcast', quality: 'sd',
-    config: { cfgContainer: 'MP4', cfgVCodec: 'H264,AVC', cfgResolution: '640x480', cfgFps: '25', cfgAspect: '4:3', cfgVBitrate: '0.8..1.2', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'AAC', cfgABitrate: '120', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '16', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '12..16', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MP4', cfgVCodec:'H264,AVC', cfgResolution:'640x480', cfgFps:'25', cfgAspect:'4:3', cfgVBitrate:'0.8..1.2', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'AAC', cfgABitrate:'120', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'16', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'12..16', cfgTimecode:'00:59:52:00' }
   },
   copy_hd_4_5_doc: {
     name: 'Мастер-копия HD (4-5 курс, документальный)',
     desc: 'h.264 .mov, 1920×1080, 25p, 10-12 Мбит/с · LRA 5-10 LU',
     type: 'broadcast', quality: 'hd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'H264,AVC', cfgResolution: '1920x1080', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '10..12', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '5..10', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'H264,AVC', cfgResolution:'1920x1080', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'10..12', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'5..10', cfgTimecode:'00:59:52:00' }
   },
   copy_hd_4_5_fic: {
     name: 'Мастер-копия HD (4-5 курс, игровой)',
     desc: 'h.264 .mov, 1920×1080, 25p, 10-12 Мбит/с · LRA 12-16 LU',
     type: 'broadcast', quality: 'hd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'H264,AVC', cfgResolution: '1920x1080', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '10..12', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '12..16', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'H264,AVC', cfgResolution:'1920x1080', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'10..12', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'12..16', cfgTimecode:'00:59:52:00' }
   },
   copy_uhd_4_5_doc: {
     name: 'Мастер-копия UHD (4-5 курс, документальный)',
     desc: 'h.264 .mov, 3840×2160, 25p, 90-100 Мбит/с · LRA 5-10 LU',
     type: 'broadcast', quality: 'uhd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'H264,AVC', cfgResolution: '3840x2160', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '90..100', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '5..10', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'H264,AVC', cfgResolution:'3840x2160', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'90..100', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'5..10', cfgTimecode:'00:59:52:00' }
   },
   copy_uhd_4_5_fic: {
     name: 'Мастер-копия UHD (4-5 курс, игровой)',
     desc: 'h.264 .mov, 3840×2160, 25p, 90-100 Мбит/с · LRA 12-16 LU',
     type: 'broadcast', quality: 'uhd',
-    config: { cfgContainer: 'MOV', cfgVCodec: 'H264,AVC', cfgResolution: '3840x2160', cfgFps: '25', cfgAspect: '16:9', cfgVBitrate: '90..100', cfgScan: 'Progressive', cfgVBitDepth: '8', cfgVTracks: '1', cfgACodec: 'PCM', cfgABitrate: '1000', cfgAChans: '2', cfgASampleRate: '48000', cfgABitDepth: '24', cfgLufs: '-23', cfgLufsTol: '0.5', cfgTruePeak: '-1', cfgLra: '12..16', cfgTimecode: '00:59:52:00' }
+    config: { cfgContainer:'MOV', cfgVCodec:'H264,AVC', cfgResolution:'3840x2160', cfgFps:'25', cfgAspect:'16:9', cfgVBitrate:'90..100', cfgScan:'Progressive', cfgVBitDepth:'8', cfgVTracks:'1', cfgACodec:'PCM', cfgABitrate:'1000', cfgAChans:'2', cfgASampleRate:'48000', cfgABitDepth:'24', cfgLufs:'-23', cfgLufsTol:'0.5', cfgTruePeak:'-1', cfgLra:'12..16', cfgTimecode:'00:59:52:00' }
   }
 };
 
-// ============================================================
-//  МОДАЛЬНОЕ ОКНО ВЫБОРА ПРЕСЕТА
-// ============================================================
 function buildPresetList() {
   const list = document.getElementById('presetList');
-  const masters = Object.entries(PRESETS).filter(([k,v]) => v.type === 'master');
-  const broadcasts = Object.entries(PRESETS).filter(([k,v]) => v.type === 'broadcast');
+  const masters    = Object.entries(PRESETS).filter(([,v]) => v.type === 'master');
+  const broadcasts = Object.entries(PRESETS).filter(([,v]) => v.type === 'broadcast');
   list.innerHTML = `
     <div class="preset-group">
       <h3>📦 Мастер-файлы (для домашнего архива)</h3>
-      ${masters.map(([k, p]) => renderPresetCard(k, p)).join('')}
+      ${masters.map(([k,p]) => renderPresetCard(k,p)).join('')}
     </div>
     <div class="preset-group">
       <h3>📡 Мастер-копии (для личного кабинета ГИТР)</h3>
-      ${broadcasts.map(([k, p]) => renderPresetCard(k, p)).join('')}
-    </div>
-  `;
+      ${broadcasts.map(([k,p]) => renderPresetCard(k,p)).join('')}
+    </div>`;
   list.querySelectorAll('.preset-card').forEach(card => {
-    card.addEventListener('click', () => {
-      applyPreset(card.dataset.key);
-      hidePresetModal();
-    });
+    card.addEventListener('click', () => { applyPreset(card.dataset.key); hidePresetModal(); });
   });
 }
 
 function renderPresetCard(key, preset) {
-  const tagType = preset.type === 'master' ? 'master' : 'broadcast';
+  const tagType  = preset.type === 'master' ? 'master' : 'broadcast';
   const tagLabel = preset.type === 'master' ? 'Мастер' : 'Копия';
   return `<div class="preset-card" data-key="${key}">
-      <div>
-        <div class="name">
-          <span class="preset-tag ${tagType}">${tagLabel}</span>
-          <span class="preset-tag ${preset.quality}">${preset.quality.toUpperCase()}</span>
-          ${preset.name}
-        </div>
-        <div class="desc">${preset.desc}</div>
+    <div>
+      <div class="name">
+        <span class="preset-tag ${tagType}">${tagLabel}</span>
+        <span class="preset-tag ${preset.quality}">${preset.quality.toUpperCase()}</span>
+        ${preset.name}
       </div>
-      <div class="arrow">→</div>
-    </div>`;
+      <div class="desc">${preset.desc}</div>
+    </div>
+    <div class="arrow">→</div>
+  </div>`;
 }
 
 function applyPreset(key) {
@@ -607,72 +1807,57 @@ function applyPreset(key) {
 function showPresetModal() { document.getElementById('presetModal').classList.remove('hidden'); }
 function hidePresetModal() { document.getElementById('presetModal').classList.add('hidden'); }
 
-// ============================================================
-//  DOM ELEMENTS
-// ============================================================
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const fileInfo = document.getElementById('fileInfo');
-const results = document.getElementById('results');
-const progress = document.getElementById('progress');
-const progressBar = document.getElementById('progressBar');
-const statusDot = document.getElementById('statusDot');
-const statusText = document.getElementById('statusText');
+/* ══════════════════════════════════════════════════════
+   DOM-ЭЛЕМЕНТЫ VideoQC
+══════════════════════════════════════════════════════ */
+const dropZone       = document.getElementById('dropZone');
+const fileInput      = document.getElementById('fileInput');
+const fileInfo       = document.getElementById('fileInfo');
+const results        = document.getElementById('results');
+const progress       = document.getElementById('progress');
+const progressBar    = document.getElementById('progressBar');
+const statusDot      = document.getElementById('statusDot');
+const statusText     = document.getElementById('statusText');
 const enableLoudness = document.getElementById('enableLoudness');
 
 const WASM_URL = 'https://unpkg.com/mediainfo.js@0.1.9/dist/MediaInfoModule.wasm';
-
-// Размер, выше которого выдаём предупреждение для видеофайлов
-const SIZE_THRESHOLD_AUDIO = 4 * 1024 * 1024 * 1024; // 1.5 ГБ
-
-// Текущий режим: 'full' (видео+звук) или 'audio' (только звук)
+const SIZE_THRESHOLD_AUDIO = 4 * 1024 * 1024 * 1024;
 let currentMode = 'full';
 
-function switchMode(mode) {
+function switchAudioMode(mode) {
   currentMode = mode;
-  const tabFull = document.getElementById('modeTabFull');
-  const tabAudio = document.getElementById('modeTabAudio');
-  const dropIcon = document.getElementById('dropIcon');
+  const tabFull   = document.getElementById('modeTabFull');
+  const tabAudio  = document.getElementById('modeTabAudio');
+  const dropIcon  = document.getElementById('dropIcon');
   const dropTitle = document.getElementById('dropTitle');
-  const dropSubtitle = document.getElementById('dropSubtitle');
+  const dropSub   = document.getElementById('dropSubtitle');
   const audioHelp = document.getElementById('audioHelp');
-  const loudnessRow = document.getElementById('loudnessRow');
-  const enableLoudness = document.getElementById('enableLoudness');
-  const loudnessHint = document.getElementById('loudnessHint');
-  const fileInput = document.getElementById('fileInput');
-  
+  const loudRow   = document.getElementById('loudnessRow');
+
   if (mode === 'audio') {
-    tabFull.classList.remove('active');
-    tabAudio.classList.add('active');
+    tabFull.classList.remove('active'); tabAudio.classList.add('active');
     dropIcon.textContent = '🔊';
     dropTitle.innerHTML = '<strong>Перетащите аудиофайл</strong> или нажмите для выбора';
-    dropSubtitle.textContent = 'WAV, MP3, AAC, FLAC, M4A — рекомендуется WAV 48 kHz';
+    dropSub.textContent = 'WAV, MP3, AAC, FLAC, M4A — рекомендуется WAV 48 kHz';
     audioHelp.style.display = 'block';
-    loudnessRow.style.display = 'none';
-    enableLoudness.checked = true; // в этом режиме всегда анализируем громкость
+    loudRow.style.display = 'none';
+    enableLoudness.checked = true;
     fileInput.accept = 'audio/*,.wav,.mp3,.aac,.m4a,.flac,.ogg,.opus';
   } else {
-    tabFull.classList.add('active');
-    tabAudio.classList.remove('active');
+    tabFull.classList.add('active'); tabAudio.classList.remove('active');
     dropIcon.textContent = '📁';
     dropTitle.innerHTML = '<strong>Перетащите видеофайл сюда</strong> или нажмите для выбора';
-    dropSubtitle.textContent = 'MOV, MP4, MKV, AVI, MXF и др.';
+    dropSub.textContent = 'MOV, MP4, MKV, AVI, MXF и др.';
     audioHelp.style.display = 'none';
-    loudnessRow.style.display = 'flex';
+    loudRow.style.display = 'flex';
     fileInput.accept = 'video/*,audio/*,.mov,.mp4,.mkv,.mxf,.avi,.m2v,.ts,.m2ts,.wav,.mp3,.aac,.m4a,.flac';
   }
-  
-  // Очищаем результаты при смене режима
   results.innerHTML = '';
   fileInfo.textContent = '';
 }
 
-function showAudioFallback() {
-  document.getElementById('audioFallbackModal').classList.remove('hidden');
-}
-function closeAudioFallback() {
-  document.getElementById('audioFallbackModal').classList.add('hidden');
-}
+function showAudioFallback()  { document.getElementById('audioFallbackModal').classList.remove('hidden'); }
+function closeAudioFallback() { document.getElementById('audioFallbackModal').classList.add('hidden'); }
 
 function checkLibrary() {
   if (typeof MediaInfo === 'function') {
@@ -695,13 +1880,13 @@ window.addEventListener('load', () => {
   }, 500);
 });
 
-['dragover','dragenter'].forEach(e=>dropZone.addEventListener(e,ev=>{
+/* drag-and-drop */
+['dragover','dragenter'].forEach(e => dropZone.addEventListener(e, ev => {
   ev.preventDefault();
   if (!dropZone.classList.contains('disabled')) dropZone.classList.add('dragover');
 }));
-['dragleave','drop'].forEach(e=>dropZone.addEventListener(e,ev=>{
-  ev.preventDefault();
-  dropZone.classList.remove('dragover');
+['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => {
+  ev.preventDefault(); dropZone.classList.remove('dragover');
 }));
 dropZone.addEventListener('drop', e => {
   if (dropZone.classList.contains('disabled')) return;
@@ -711,648 +1896,437 @@ fileInput.addEventListener('change', e => {
   if (e.target.files.length) handleFile(e.target.files[0]);
 });
 
-// ============================================================
-//  ftyp DETECTION
-// ============================================================
+/* ══════════════════════════════════════════════════════
+   ftyp DETECTION
+══════════════════════════════════════════════════════ */
 async function detectRealContainer(file) {
   try {
-    const buf = await file.slice(0, 64).arrayBuffer();
+    const buf   = await file.slice(0, 64).arrayBuffer();
     const bytes = new Uint8Array(buf);
     let ftypOffset = -1;
     for (let i = 0; i < 28; i++) {
-      if (bytes[i] === 0x66 && bytes[i+1] === 0x74 && bytes[i+2] === 0x79 && bytes[i+3] === 0x70) {
-        ftypOffset = i; break;
-      }
+      if (bytes[i]===0x66&&bytes[i+1]===0x74&&bytes[i+2]===0x79&&bytes[i+3]===0x70) { ftypOffset=i; break; }
     }
     if (ftypOffset === -1) {
-      const start = String.fromCharCode(...bytes.slice(4, 8));
-      if (['moov','mdat','wide','free','skip','pnot'].includes(start)) {
-        return { brand: 'qt  ', detected: 'MOV (QuickTime, без ftyp)' };
-      }
-      if (bytes[0]===0x52 && bytes[1]===0x49 && bytes[2]===0x46 && bytes[3]===0x46) {
-        return { brand: 'AVI ', detected: 'AVI' };
-      }
-      if (bytes[0]===0x1A && bytes[1]===0x45 && bytes[2]===0xDF && bytes[3]===0xA3) {
-        return { brand: 'MKV ', detected: 'MKV' };
-      }
-      return { brand: '????', detected: 'Неизвестный' };
+      const start = String.fromCharCode(...bytes.slice(4,8));
+      if (['moov','mdat','wide','free','skip','pnot'].includes(start)) return { brand:'qt  ', detected:'MOV (QuickTime, без ftyp)' };
+      if (bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46) return { brand:'AVI ', detected:'AVI' };
+      if (bytes[0]===0x1A&&bytes[1]===0x45&&bytes[2]===0xDF&&bytes[3]===0xA3) return { brand:'MKV ', detected:'MKV' };
+      return { brand:'????', detected:'Неизвестный' };
     }
-    const majorBrand = String.fromCharCode(bytes[ftypOffset+4], bytes[ftypOffset+5], bytes[ftypOffset+6], bytes[ftypOffset+7]);
+    const majorBrand = String.fromCharCode(bytes[ftypOffset+4],bytes[ftypOffset+5],bytes[ftypOffset+6],bytes[ftypOffset+7]);
     const compatibleBrands = [];
-    for (let i = ftypOffset + 12; i < bytes.length - 3; i += 4) {
-      const b = String.fromCharCode(bytes[i], bytes[i+1], bytes[i+2], bytes[i+3]);
-      if (/^[a-zA-Z0-9 ]{4}$/.test(b)) compatibleBrands.push(b);
-      else break;
+    for (let i = ftypOffset+12; i < bytes.length-3; i+=4) {
+      const b = String.fromCharCode(bytes[i],bytes[i+1],bytes[i+2],bytes[i+3]);
+      if (/^[a-zA-Z0-9 ]{4}$/.test(b)) compatibleBrands.push(b); else break;
     }
-    if (majorBrand === 'qt  ' || compatibleBrands.includes('qt  ')) {
-      return { brand: majorBrand, compatible: compatibleBrands, detected: 'MOV (QuickTime)' };
-    }
-    if (['mp41','mp42','isom','iso2','iso4','iso5','iso6','avc1','dash','msnv','M4V '].includes(majorBrand)) {
-      return { brand: majorBrand, compatible: compatibleBrands, detected: 'MP4' };
-    }
-    if (majorBrand.startsWith('3g')) {
-      return { brand: majorBrand, compatible: compatibleBrands, detected: '3GP' };
-    }
-    return { brand: majorBrand, compatible: compatibleBrands, detected: `ISO BMFF (${majorBrand})` };
-  } catch (e) {
-    return { brand: '????', detected: 'Ошибка чтения', error: e.message };
-  }
+    if (majorBrand==='qt  '||compatibleBrands.includes('qt  ')) return { brand:majorBrand, compatible:compatibleBrands, detected:'MOV (QuickTime)' };
+    if (['mp41','mp42','isom','iso2','iso4','iso5','iso6','avc1','dash','msnv','M4V '].includes(majorBrand)) return { brand:majorBrand, compatible:compatibleBrands, detected:'MP4' };
+    if (majorBrand.startsWith('3g')) return { brand:majorBrand, compatible:compatibleBrands, detected:'3GP' };
+    return { brand:majorBrand, compatible:compatibleBrands, detected:`ISO BMFF (${majorBrand})` };
+  } catch(e) { return { brand:'????', detected:'Ошибка чтения', error:e.message }; }
 }
 
-// ============================================================
-//  K-WEIGHTING ФИЛЬТР И EBU R128 (для Web Audio API метода)
-// ============================================================
+/* ══════════════════════════════════════════════════════
+   K-WEIGHTING + EBU R128
+══════════════════════════════════════════════════════ */
 function createKFilter(sampleRate) {
   const fs = sampleRate;
-  const f0_pre = 1681.974450955533, Q_pre = 0.7071752369554196, G_pre = 3.999843853973347;
-  const K_pre = Math.tan(Math.PI * f0_pre / fs);
-  const Vh_pre = Math.pow(10, G_pre / 20);
-  const Vb_pre = Math.pow(Vh_pre, 0.4996667741545416);
-  const a0_pre = 1 + K_pre/Q_pre + K_pre*K_pre;
-  const pre_b0 = (Vh_pre + Vb_pre*K_pre/Q_pre + K_pre*K_pre) / a0_pre;
-  const pre_b1 = 2*(K_pre*K_pre - Vh_pre) / a0_pre;
-  const pre_b2 = (Vh_pre - Vb_pre*K_pre/Q_pre + K_pre*K_pre) / a0_pre;
-  const pre_a1 = 2*(K_pre*K_pre - 1) / a0_pre;
-  const pre_a2 = (1 - K_pre/Q_pre + K_pre*K_pre) / a0_pre;
-  const f0_rlb = 38.13547087602444, Q_rlb = 0.5003270373238773;
-  const K_rlb = Math.tan(Math.PI * f0_rlb / fs);
-  const a0_rlb = 1 + K_rlb/Q_rlb + K_rlb*K_rlb;
-  const rlb_b0 = 1 / a0_rlb, rlb_b1 = -2 / a0_rlb, rlb_b2 = 1 / a0_rlb;
-  const rlb_a1 = 2*(K_rlb*K_rlb - 1) / a0_rlb;
-  const rlb_a2 = (1 - K_rlb/Q_rlb + K_rlb*K_rlb) / a0_rlb;
-  return {
-    apply(input) {
-      const out = new Float32Array(input.length);
-      let x1=0, x2=0, y1=0, y2=0, x1b=0, x2b=0, y1b=0, y2b=0;
-      for (let i = 0; i < input.length; i++) {
-        const x = input[i];
-        const y = pre_b0*x + pre_b1*x1 + pre_b2*x2 - pre_a1*y1 - pre_a2*y2;
-        x2 = x1; x1 = x; y2 = y1; y1 = y;
-        const z = rlb_b0*y + rlb_b1*x1b + rlb_b2*x2b - rlb_a1*y1b - rlb_a2*y2b;
-        x2b = x1b; x1b = y; y2b = y1b; y1b = z;
-        out[i] = z;
-      }
-      return out;
+  const f0p=1681.974450955533,Qp=0.7071752369554196,Gp=3.999843853973347;
+  const Kp=Math.tan(Math.PI*f0p/fs),Vhp=Math.pow(10,Gp/20),Vbp=Math.pow(Vhp,0.4996667741545416);
+  const a0p=1+Kp/Qp+Kp*Kp;
+  const pb0=(Vhp+Vbp*Kp/Qp+Kp*Kp)/a0p,pb1=2*(Kp*Kp-Vhp)/a0p,pb2=(Vhp-Vbp*Kp/Qp+Kp*Kp)/a0p;
+  const pa1=2*(Kp*Kp-1)/a0p,pa2=(1-Kp/Qp+Kp*Kp)/a0p;
+  const f0r=38.13547087602444,Qr=0.5003270373238773;
+  const Kr=Math.tan(Math.PI*f0r/fs),a0r=1+Kr/Qr+Kr*Kr;
+  const rb0=1/a0r,rb1=-2/a0r,rb2=1/a0r,ra1=2*(Kr*Kr-1)/a0r,ra2=(1-Kr/Qr+Kr*Kr)/a0r;
+  return { apply(input) {
+    const out=new Float32Array(input.length);
+    let x1=0,x2=0,y1=0,y2=0,x1b=0,x2b=0,y1b=0,y2b=0;
+    for(let i=0;i<input.length;i++){
+      const x=input[i],y=pb0*x+pb1*x1+pb2*x2-pa1*y1-pa2*y2;
+      x2=x1;x1=x;y2=y1;y1=y;
+      const z=rb0*y+rb1*x1b+rb2*x2b-ra1*y1b-ra2*y2b;
+      x2b=x1b;x1b=y;y2b=y1b;y1b=z;out[i]=z;
     }
-  };
+    return out;
+  }};
 }
 
-const CHANNEL_WEIGHTS = { 0: 1.0, 1: 1.0, 2: 1.0, 3: 1.41, 4: 1.41 };
-
-function meanSquare(samples) {
-  let sum = 0;
-  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
-  return sum / samples.length;
-}
-
-function blockLoudness(channelMS, weights) {
-  let sum = 0;
-  for (let i = 0; i < channelMS.length; i++) sum += weights[i] * channelMS[i];
-  if (sum <= 0) return -Infinity;
-  return -0.691 + 10 * Math.log10(sum);
-}
+const CH_W={0:1.0,1:1.0,2:1.0,3:1.41,4:1.41};
+function meanSquare(s){let sum=0;for(let i=0;i<s.length;i++)sum+=s[i]*s[i];return sum/s.length;}
+function blockLoudness(ms,w){let s=0;for(let i=0;i<ms.length;i++)s+=w[i]*ms[i];return s<=0?-Infinity:-0.691+10*Math.log10(s);}
 
 async function computeEBUR128(audioBuffer, onProgress) {
-  const sr = audioBuffer.sampleRate;
-  const nch = audioBuffer.numberOfChannels;
-  const length = audioBuffer.length;
-  const filter = createKFilter(sr);
-  const filteredChannels = [];
-  const weights = [];
-  for (let ch = 0; ch < nch; ch++) {
-    filteredChannels.push(filter.apply(audioBuffer.getChannelData(ch)));
-    weights.push(CHANNEL_WEIGHTS[ch] !== undefined ? CHANNEL_WEIGHTS[ch] : 1.0);
+  const sr=audioBuffer.sampleRate,nch=audioBuffer.numberOfChannels,length=audioBuffer.length;
+  const filter=createKFilter(sr);
+  const filteredCh=[],weights=[];
+  for(let ch=0;ch<nch;ch++){filteredCh.push(filter.apply(audioBuffer.getChannelData(ch)));weights.push(CH_W[ch]!==undefined?CH_W[ch]:1.0);}
+  if(onProgress)onProgress(0.3);
+  const bs=Math.round(0.4*sr),step=Math.round(0.1*sr);
+  const mBlocks=[];
+  for(let start=0;start+bs<=length;start+=step){
+    const ms=[];
+    for(let ch=0;ch<nch;ch++)ms.push(meanSquare(filteredCh[ch].subarray(start,start+bs)));
+    mBlocks.push({ms,loudness:blockLoudness(ms,weights)});
   }
-  if (onProgress) onProgress(0.3);
-  const blockSize = Math.round(0.4 * sr);
-  const stepSize = Math.round(0.1 * sr);
-  const momentaryBlocks = [];
-  for (let start = 0; start + blockSize <= length; start += stepSize) {
-    const channelMS = [];
-    for (let ch = 0; ch < nch; ch++) {
-      const slice = filteredChannels[ch].subarray(start, start + blockSize);
-      channelMS.push(meanSquare(slice));
-    }
-    momentaryBlocks.push({ ms: channelMS, loudness: blockLoudness(channelMS, weights) });
-  }
-  if (onProgress) onProgress(0.5);
-  const absoluteGated = momentaryBlocks.filter(b => b.loudness >= -70);
-  if (absoluteGated.length === 0) {
-    return { integrated: -Infinity, momentaryMax: -Infinity, shortTermMax: -Infinity,
-      lra: 0, truePeak: -Infinity, sampleRate: sr, channels: nch, source: 'webaudio' };
-  }
-  const meanChannelMS_abs = new Array(nch).fill(0);
-  for (const b of absoluteGated) for (let ch = 0; ch < nch; ch++) meanChannelMS_abs[ch] += b.ms[ch];
-  for (let ch = 0; ch < nch; ch++) meanChannelMS_abs[ch] /= absoluteGated.length;
-  const ungatedLoudness = blockLoudness(meanChannelMS_abs, weights);
-  const relativeThreshold = ungatedLoudness - 10;
-  const relativeGated = absoluteGated.filter(b => b.loudness >= relativeThreshold);
+  if(onProgress)onProgress(0.5);
+  const absGated=mBlocks.filter(b=>b.loudness>=-70);
+  if(!absGated.length) return {integrated:-Infinity,momentaryMax:-Infinity,shortTermMax:-Infinity,lra:0,truePeak:-Infinity,sampleRate:sr,channels:nch,source:'webaudio'};
+  const mAbs=new Array(nch).fill(0);
+  for(const b of absGated)for(let ch=0;ch<nch;ch++)mAbs[ch]+=b.ms[ch];
+  for(let ch=0;ch<nch;ch++)mAbs[ch]/=absGated.length;
+  const ungated=blockLoudness(mAbs,weights),relThresh=ungated-10;
+  const relGated=absGated.filter(b=>b.loudness>=relThresh);
   let integrated;
-  if (relativeGated.length === 0) integrated = ungatedLoudness;
-  else {
-    const meanChannelMS_rel = new Array(nch).fill(0);
-    for (const b of relativeGated) for (let ch = 0; ch < nch; ch++) meanChannelMS_rel[ch] += b.ms[ch];
-    for (let ch = 0; ch < nch; ch++) meanChannelMS_rel[ch] /= relativeGated.length;
-    integrated = blockLoudness(meanChannelMS_rel, weights);
+  if(!relGated.length){integrated=ungated;}
+  else{const mRel=new Array(nch).fill(0);for(const b of relGated)for(let ch=0;ch<nch;ch++)mRel[ch]+=b.ms[ch];for(let ch=0;ch<nch;ch++)mRel[ch]/=relGated.length;integrated=blockLoudness(mRel,weights);}
+  if(onProgress)onProgress(0.7);
+  const stBS=Math.round(3.0*sr),stL=[];
+  for(let start=0;start+stBS<=length;start+=step){
+    const ms=[];for(let ch=0;ch<nch;ch++)ms.push(meanSquare(filteredCh[ch].subarray(start,start+stBS)));
+    stL.push(blockLoudness(ms,weights));
   }
-  if (onProgress) onProgress(0.7);
-  const stBlockSize = Math.round(3.0 * sr);
-  const shortTermLoudness = [];
-  for (let start = 0; start + stBlockSize <= length; start += stepSize) {
-    const channelMS = [];
-    for (let ch = 0; ch < nch; ch++) {
-      const slice = filteredChannels[ch].subarray(start, start + stBlockSize);
-      channelMS.push(meanSquare(slice));
-    }
-    shortTermLoudness.push(blockLoudness(channelMS, weights));
+  const stMax=stL.length?Math.max(...stL):-Infinity;
+  const mMax=Math.max(...mBlocks.map(b=>b.loudness));
+  const stAbs=stL.filter(l=>l>=-70);
+  let lra=0;
+  if(stAbs.length>0){
+    const stMean=stAbs.reduce((a,b)=>a+b,0)/stAbs.length;
+    const stRel=stAbs.filter(l=>l>=stMean-20);
+    if(stRel.length>=2){const sorted=[...stRel].sort((a,b)=>a-b);const p10=sorted[Math.floor(sorted.length*0.10)],p95=sorted[Math.floor(sorted.length*0.95)];lra=p95-p10;}
   }
-  const shortTermMax = shortTermLoudness.length ? Math.max(...shortTermLoudness) : -Infinity;
-  const momentaryMax = Math.max(...momentaryBlocks.map(b => b.loudness));
-  const stAbsGated = shortTermLoudness.filter(l => l >= -70);
-  let lra = 0;
-  if (stAbsGated.length > 0) {
-    const stMean = stAbsGated.reduce((a,b) => a+b, 0) / stAbsGated.length;
-    const stRelGated = stAbsGated.filter(l => l >= stMean - 20);
-    if (stRelGated.length >= 2) {
-      const sorted = [...stRelGated].sort((a,b) => a-b);
-      const p10 = sorted[Math.floor(sorted.length * 0.10)];
-      const p95 = sorted[Math.floor(sorted.length * 0.95)];
-      lra = p95 - p10;
+  if(onProgress)onProgress(0.85);
+  let tp=0;
+  for(let ch=0;ch<nch;ch++){
+    const data=audioBuffer.getChannelData(ch);let prev=0;
+    for(let i=0;i<data.length;i++){
+      const cur=Math.abs(data[i]);if(cur>tp)tp=cur;
+      if(i>0)for(let k=1;k<4;k++){const v=Math.abs(prev+(data[i]-prev)*(k/4));if(v>tp)tp=v;}
+      prev=data[i];
     }
   }
-  if (onProgress) onProgress(0.85);
-  let truePeak = 0;
-  for (let ch = 0; ch < nch; ch++) {
-    const data = audioBuffer.getChannelData(ch);
-    let prev = 0;
-    for (let i = 0; i < data.length; i++) {
-      const cur = Math.abs(data[i]);
-      if (cur > truePeak) truePeak = cur;
-      if (i > 0) for (let k = 1; k < 4; k++) {
-        const interp = Math.abs(prev + (data[i] - prev) * (k/4));
-        if (interp > truePeak) truePeak = interp;
-      }
-      prev = data[i];
-    }
-  }
-  const truePeakDB = truePeak > 0 ? 20 * Math.log10(truePeak) : -Infinity;
-  if (onProgress) onProgress(1.0);
-  return { integrated, momentaryMax, shortTermMax, lra, truePeak: truePeakDB,
-    sampleRate: sr, channels: nch, source: 'webaudio' };
+  if(onProgress)onProgress(1.0);
+  return {integrated,momentaryMax:mMax,shortTermMax:stMax,lra,truePeak:tp>0?20*Math.log10(tp):-Infinity,sampleRate:sr,channels:nch,source:'webaudio'};
 }
 
-
-// ============================================================
-//  ОСНОВНАЯ ОБРАБОТКА ФАЙЛА
-// ============================================================
+/* ══════════════════════════════════════════════════════
+   ОСНОВНАЯ ОБРАБОТКА ФАЙЛА
+══════════════════════════════════════════════════════ */
 async function handleFile(file) {
-  if (typeof MediaInfo !== 'function') {
-    alert('Библиотека MediaInfo не загружена. Обновите страницу.');
-    return;
-  }
-  
+  if (typeof MediaInfo !== 'function') { alert('Библиотека MediaInfo не загружена. Обновите страницу.'); return; }
   fileInfo.textContent = `Файл: ${file.name} (${(file.size/1024/1024).toFixed(2)} МБ)`;
-  results.innerHTML = '';
-  progress.style.display = 'block';
-  progressBar.style.width = '5%';
-  
-  let metadata = null, containerInfo = null, loudness = null, loudnessError = null;
-  
+  results.innerHTML = ''; progress.style.display = 'block'; progressBar.style.width = '5%';
+
+  let metadata=null, containerInfo=null, loudness=null, loudnessError=null;
   try {
-    // === РЕЖИМ "ТОЛЬКО ЗВУК" ===
     if (currentMode === 'audio') {
       statusText.textContent = 'Чтение метаданных аудиофайла...';
-      
-      // Лёгкая проверка контейнера для аудио (не критично)
       containerInfo = await detectRealContainer(file);
       progressBar.style.width = '8%';
-      
-      // MediaInfo для аудио
-      const mediainfo = await new Promise((resolve, reject) => {
-        try {
-          MediaInfo({
-            format: 'object', full: true, coverData: false,
-            locateFile: (p) => p.endsWith('.wasm') ? WASM_URL : p
-          }, mi => resolve(mi));
-        } catch (err) { reject(err); }
-      });
-      const getSize = () => file.size;
-      const readChunk = (chunkSize, offset) => new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = ev => res(new Uint8Array(ev.target.result));
-        r.onerror = rej;
-        r.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
-      });
-      metadata = await mediainfo.analyzeData(getSize, readChunk);
-      if (mediainfo.close) mediainfo.close();
+      const mi = await new Promise((res,rej) => { try { MediaInfo({format:'object',full:true,coverData:false,locateFile:p=>p.endsWith('.wasm')?WASM_URL:p},m=>res(m)); } catch(e){rej(e);} });
+      metadata = await mi.analyzeData(()=>file.size, (sz,off)=>new Promise((r,j)=>{const rd=new FileReader();rd.onload=ev=>r(new Uint8Array(ev.target.result));rd.onerror=j;rd.readAsArrayBuffer(file.slice(off,off+sz));}));
+      if(mi.close)mi.close();
       progressBar.style.width = '20%';
-      
-      // Анализ громкости
       try {
         statusText.textContent = 'Декодирование аудио...';
-        const arrayBuffer = await file.arrayBuffer();
-        progressBar.style.width = '40%';
-        
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioCtx();
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-        
-        progressBar.style.width = '50%';
-        statusText.textContent = 'Расчёт EBU R128 / ITU-R BS.1770...';
-        loudness = await computeEBUR128(audioBuffer, (p) => {
-          progressBar.style.width = (50 + p * 45) + '%';
-        });
+        const ab = await file.arrayBuffer(); progressBar.style.width = '40%';
+        const ctx = new (window.AudioContext||window.webkitAudioContext)();
+        const buf = await ctx.decodeAudioData(ab.slice(0)); progressBar.style.width = '50%';
+        statusText.textContent = 'Расчёт EBU R128...';
+        loudness = await computeEBUR128(buf, p=>{ progressBar.style.width=(50+p*45)+'%'; });
         ctx.close();
-      } catch (e) {
-        loudnessError = `Не удалось проанализировать звук: ${e.message}. Попробуйте другой формат (рекомендуется WAV 48 kHz, 24-bit).`;
-        console.error('Audio-only loudness error:', e);
-      }
-      
-      progressBar.style.width = '95%';
-      statusText.textContent = 'Формирование отчёта...';
-      renderResults(metadata, file, containerInfo, loudness, loudnessError, true);
-      progressBar.style.width = '100%';
-      statusText.textContent = 'Готово.';
-      setTimeout(() => progress.style.display = 'none', 500);
+      } catch(e) { loudnessError=`Не удалось проанализировать: ${e.message}. Попробуйте WAV 48 kHz, 24-bit.`; }
+      progressBar.style.width='95%'; statusText.textContent='Формирование отчёта...';
+      renderResults(metadata,file,containerInfo,loudness,loudnessError,true);
+      progressBar.style.width='100%'; statusText.textContent='Готово.';
+      setTimeout(()=>progress.style.display='none',500);
       return;
     }
-    
-    // === РЕЖИМ "ВИДЕО + ЗВУК" ===
-    statusText.textContent = 'Определение типа контейнера...';
-    containerInfo = await detectRealContainer(file);
-    progressBar.style.width = '8%';
-    
+
+    /* Видео + звук */
+    statusText.textContent = 'Определение контейнера...';
+    containerInfo = await detectRealContainer(file); progressBar.style.width='8%';
     statusText.textContent = 'Чтение метаданных...';
-    const mediainfo = await new Promise((resolve, reject) => {
-      try {
-        MediaInfo({
-          format: 'object', full: true, coverData: false,
-          locateFile: (p) => p.endsWith('.wasm') ? WASM_URL : p
-        }, mi => resolve(mi));
-      } catch (err) { reject(err); }
-    });
-    const getSize = () => file.size;
-    const readChunk = (chunkSize, offset) => new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = ev => res(new Uint8Array(ev.target.result));
-      r.onerror = rej;
-      r.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
-    });
-    metadata = await mediainfo.analyzeData(getSize, readChunk);
-    if (mediainfo.close) mediainfo.close();
-    progressBar.style.width = '20%';
-    
-    // Анализ громкости (только если файл не слишком большой)
+    const mi = await new Promise((res,rej)=>{ try{MediaInfo({format:'object',full:true,coverData:false,locateFile:p=>p.endsWith('.wasm')?WASM_URL:p},m=>res(m));}catch(e){rej(e);}});
+    metadata = await mi.analyzeData(()=>file.size,(sz,off)=>new Promise((r,j)=>{const rd=new FileReader();rd.onload=ev=>r(new Uint8Array(ev.target.result));rd.onerror=j;rd.readAsArrayBuffer(file.slice(off,off+sz));}));
+    if(mi.close)mi.close();
+    progressBar.style.width='20%';
+
     if (enableLoudness.checked) {
-      // === Превентивная проверка размера ===
       if (file.size > SIZE_THRESHOLD_AUDIO) {
-        loudnessError = `Файл слишком большой (${(file.size/1024/1024/1024).toFixed(2)} ГБ) — браузер не может проанализировать звук в файлах больше 4 ГБ.`;
-        // Показываем диалог с инструкцией
-        setTimeout(() => showAudioFallback(), 500);
+        loudnessError=`Файл слишком большой (${(file.size/1024/1024/1024).toFixed(2)} ГБ) — браузер не может обработать аудио файлов больше 4 ГБ.`;
+        setTimeout(()=>showAudioFallback(),500);
       } else {
         try {
-          statusText.textContent = 'Декодирование аудио (Web Audio API)...';
-          let arrayBuffer;
-          try {
-            arrayBuffer = await file.arrayBuffer();
-          } catch (readErr) {
-            arrayBuffer = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = () => reject(new Error(
-                `Не удалось прочитать файл: ${reader.error?.message || readErr.message}`
-              ));
-              reader.readAsArrayBuffer(file);
-            });
-          }
-          progressBar.style.width = '40%';
-          
-          const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          const ctx = new AudioCtx();
-          let audioBuffer;
-          try {
-            audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-          } catch (decodeErr) {
-            ctx.close();
-            throw new Error(
-              `Браузер не может декодировать аудио (часто бывает с PCM в MOV). ` +
-              `Сообщение: ${decodeErr.message}`
-            );
-          }
-          
-          progressBar.style.width = '50%';
-          statusText.textContent = 'Расчёт EBU R128 / ITU-R BS.1770...';
-          loudness = await computeEBUR128(audioBuffer, (p) => {
-            progressBar.style.width = (50 + p * 45) + '%';
-          });
-          ctx.close();
-          arrayBuffer = null;
-        } catch (e) {
-          loudnessError = e.message;
-          console.error('Loudness error:', e);
-          // Если это ошибка чтения большого файла — показываем диалог
-          if (e.message.includes('NotReadableError') || 
-              e.message.includes('too large') ||
-              e.message.includes('memory') ||
-              file.size > 500 * 1024 * 1024) {
-            setTimeout(() => showAudioFallback(), 500);
-          }
+          statusText.textContent='Декодирование аудио (Web Audio API)...';
+          let ab;
+          try { ab=await file.arrayBuffer(); } catch(re) { ab=await new Promise((r,j)=>{const rd=new FileReader();rd.onload=()=>r(rd.result);rd.onerror=()=>j(new Error(`Не удалось прочитать: ${rd.error?.message||re.message}`));rd.readAsArrayBuffer(file);}); }
+          progressBar.style.width='40%';
+          const ctx=new(window.AudioContext||window.webkitAudioContext)();
+          let buf;
+          try{buf=await ctx.decodeAudioData(ab.slice(0));}catch(de){ctx.close();throw new Error(`Браузер не может декодировать аудио (часто бывает с PCM в MOV). ${de.message}`);}
+          progressBar.style.width='50%';
+          statusText.textContent='Расчёт EBU R128 / ITU-R BS.1770...';
+          loudness=await computeEBUR128(buf,p=>{progressBar.style.width=(50+p*45)+'%';});
+          ctx.close(); ab=null;
+        } catch(e) {
+          loudnessError=e.message;
+          if(e.message.includes('NotReadableError')||e.message.includes('too large')||e.message.includes('memory')||file.size>500*1024*1024) setTimeout(()=>showAudioFallback(),500);
         }
       }
     }
-    
-    progressBar.style.width = '95%';
-    statusText.textContent = 'Формирование отчёта...';
-    renderResults(metadata, file, containerInfo, loudness, loudnessError, false);
-    progressBar.style.width = '100%';
-    statusText.textContent = 'Готово.';
-    setTimeout(() => progress.style.display = 'none', 500);
-  } catch (e) {
-    results.innerHTML = `<div class="card"><strong style="color:#dc2626">Ошибка анализа:</strong> ${e.message}</div>${renderOTKHelp()}`;
-    progress.style.display = 'none';
-    statusText.textContent = 'Ошибка. Подробности в консоли (F12).';
+    progressBar.style.width='95%'; statusText.textContent='Формирование отчёта...';
+    renderResults(metadata,file,containerInfo,loudness,loudnessError,false);
+    progressBar.style.width='100%'; statusText.textContent='Готово.';
+    setTimeout(()=>progress.style.display='none',500);
+  } catch(e) {
+    results.innerHTML=`<div class="vq-card"><strong style="color:#dc2626">Ошибка анализа:</strong> ${e.message}</div>${renderOTKHelp()}`;
+    progress.style.display='none'; statusText.textContent='Ошибка. Подробности в консоли (F12).';
     console.error(e);
   }
 }
 
-
+/* ══════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════ */
 function getCfg(id) { return document.getElementById(id).value.trim(); }
-function parseList(s) { return s.split(',').map(x=>x.trim().toUpperCase()).filter(Boolean); }
-function parseRange(s) {
-  const m = s.split('..').map(x=>parseFloat(x.trim()));
-  return { min: m[0], max: m.length > 1 ? m[1] : Infinity };
-}
+function parseList(s){ return s.split(',').map(x=>x.trim().toUpperCase()).filter(Boolean); }
+function parseRange(s){ const m=s.split('..').map(x=>parseFloat(x.trim())); return {min:m[0],max:m.length>1?m[1]:Infinity}; }
+function escapeHtml(s){ return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function formatDuration(sec){ if(!sec)return '—'; const s=parseFloat(sec),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=(s%60).toFixed(2); return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${ss.padStart(5,'0')}`; }
 
 function renderOTKHelp() {
-  return `<div class="otk-help">
-      <h3>📺 Не прошли проверку?</h3>
-      <p>Автор проекта <strong>@adam1tbc</strong> подготовил подробный гайд по отделу технического контроля (ОТК) — там разобраны типичные ошибки и как их исправить:</p>
-      <a href="https://www.youtube.com/watch?v=7a1TwFbapz0" target="_blank" rel="noopener" class="yt-link">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-        Смотреть гайд по ОТК на YouTube
-      </a>
-    </div>`;
+  return `<div class="vq-otk-help">
+    <h3>📺 Не прошли проверку?</h3>
+    <p>Автор проекта <strong>@adam1tbc</strong> подготовил подробный гайд по ОТК — там разобраны типичные ошибки и как их исправить:</p>
+    <a href="https://www.youtube.com/watch?v=7a1TwFbapz0" target="_blank" rel="noopener" class="yt-link">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+      Смотреть гайд по ОТК на YouTube
+    </a>
+  </div>`;
 }
 
+/* ══════════════════════════════════════════════════════
+   РЕНДЕР РЕЗУЛЬТАТОВ
+══════════════════════════════════════════════════════ */
 function renderResults(data, file, containerInfo, loudness, loudnessError, audioOnlyMode) {
-
-  const tracks = (data.media && data.media.track) || [];
-  const general = tracks.find(t => t['@type'] === 'General');
-  const video = tracks.find(t => t['@type'] === 'Video');
-  const audio = tracks.find(t => t['@type'] === 'Audio');
-  const other = tracks.filter(t => t['@type'] === 'Other');
-  const videoTracks = tracks.filter(t => t['@type'] === 'Video');
-  const audioTracks = tracks.filter(t => t['@type'] === 'Audio');
+  const tracks      = (data.media&&data.media.track)||[];
+  const general     = tracks.find(t=>t['@type']==='General');
+  const video       = tracks.find(t=>t['@type']==='Video');
+  const audio       = tracks.find(t=>t['@type']==='Audio');
+  const other       = tracks.filter(t=>t['@type']==='Other');
+  const videoTracks = tracks.filter(t=>t['@type']==='Video');
+  const audioTracks = tracks.filter(t=>t['@type']==='Audio');
   const tests = [];
-  const add = (cat, name, status, exp, act, note='') => tests.push({ cat, name, status, exp, act, note });
+  const add = (cat,name,status,exp,act,note='',refAnchor='') => tests.push({cat,name,status,exp,act,note,refAnchor});
 
-
-if (!audioOnlyMode) {
-
-  // Контейнер
-  const containerExpected = getCfg('cfgContainer').toUpperCase();
-  const detectedFromFtyp = (containerInfo?.detected || '').toUpperCase();
-  let containerOk = false, containerActual = '—';
-  if (detectedFromFtyp.includes('QUICKTIME') || detectedFromFtyp.includes('MOV')) {
-    containerActual = `MOV (QuickTime, brand: ${containerInfo.brand.trim()})`;
-    containerOk = containerExpected === 'MOV';
-  } else if (detectedFromFtyp.includes('MP4')) {
-    containerActual = `MP4 (brand: ${containerInfo.brand.trim()})`;
-    containerOk = containerExpected === 'MP4';
-  } else if (detectedFromFtyp === 'AVI') {
-    containerActual = 'AVI'; containerOk = containerExpected === 'AVI';
-  } else if (detectedFromFtyp === 'MKV') {
-    containerActual = 'MKV'; containerOk = containerExpected === 'MKV';
-  } else {
-    containerActual = `${containerInfo?.detected || general?.Format || '?'}`;
-    containerOk = (general?.Format || '').toUpperCase().includes(containerExpected);
-  }
-  add('Контейнер', 'Профиль формата', containerOk ? 'pass' : 'fail',
-      containerExpected, containerActual,
-      `MediaInfo: "${general?.Format || '—'}", ftyp: "${containerInfo?.brand || '—'}"`);
-  add('Контейнер', 'Целостность контейнера', 'pass', 'Без ошибок', 'Файл успешно прочитан');
-  
-  // Видео
-  if (video) {
-    const codecsExp = parseList(getCfg('cfgVCodec'));
-    const vCodec = (video.Format || '').toUpperCase().replace(/[\s.\-_]/g,'');
-    const codecOk = codecsExp.some(c => {
-      const cc = c.replace(/[\s.\-_]/g,'');
-      return vCodec.includes(cc) || cc.includes(vCodec);
-    });
-    add('Видео', 'Видеокодек', codecOk ? 'pass' : 'fail', codecsExp.join(', '), video.Format || '—');
-    const resExp = getCfg('cfgResolution');
-    const actRes = `${video.Width}x${video.Height}`;
-    add('Видео', 'Разрешение', actRes === resExp ? 'pass' : 'fail', resExp, actRes);
-    const fpsExp = parseFloat(getCfg('cfgFps'));
-    const fpsAct = parseFloat(video.FrameRate);
-    add('Видео', 'Кадры в секунду', Math.abs(fpsAct - fpsExp) < 0.01 ? 'pass' : 'fail', fpsExp, fpsAct);
-    const aspectExp = getCfg('cfgAspect');
-    const aspectActStr = video.DisplayAspectRatio_String || video.DisplayAspectRatio || '—';
-    const aspectNum = parseFloat(video.DisplayAspectRatio);
-    const expParts = aspectExp.split(':').map(parseFloat);
-    const expRatio = expParts.length === 2 ? expParts[0]/expParts[1] : NaN;
-    const aspectOk = String(aspectActStr).replace(/\s/g,'') === aspectExp ||
-                     (!isNaN(expRatio) && Math.abs(aspectNum - expRatio) < 0.01);
-    add('Видео', 'Соотношение сторон', aspectOk ? 'pass' : 'fail', aspectExp, aspectActStr);
-    const par = video.PixelAspectRatio || 1;
-    add('Видео', 'Соотношение сторон пикселя',
-        Math.abs(parseFloat(par) - 1) < 0.01 ? 'pass' : 'fail', '1:1', par == 1 ? '1:1' : par);
-    const vbr = parseRange(getCfg('cfgVBitrate'));
-    const actBR = (parseFloat(video.BitRate) || 0) / 1_000_000;
-    add('Видео', 'Битрейт видео',
-        actBR >= vbr.min && actBR <= vbr.max ? 'pass' : 'fail',
-        `${vbr.min}…${vbr.max} Мбит/с`, `${actBR.toFixed(3)} Мбит/с`);
-    const scanExp = getCfg('cfgScan');
-    const scanAct = video.ScanType || 'Progressive';
-    add('Видео', 'Тип развёртки', scanAct.toLowerCase() === scanExp.toLowerCase() ? 'pass' : 'fail', scanExp, scanAct);
-    const bdExp = parseInt(getCfg('cfgVBitDepth'));
-    const bdAct = parseInt(video.BitDepth);
-    add('Видео', 'Битовая глубина видео',
-        bdAct === bdExp ? 'pass' : (isNaN(bdAct) ? 'skip' : 'fail'),
-        `${bdExp} бит`, `${bdAct || '—'} бит`);
-    const vTracksExp = parseInt(getCfg('cfgVTracks'));
-    add('Видео', 'Количество видеодорожек',
-        videoTracks.length === vTracksExp ? 'pass' : 'fail', vTracksExp, videoTracks.length);
-  } else {
-    add('Видео', 'Видеодорожка', 'fail', 'Должна быть', 'Не найдена');
-  }
-  
-}
-  // Аудио
-  if (audio) {
-    const aCodecsExp = parseList(getCfg('cfgACodec'));
-    const aCodec = (audio.Format || '').toUpperCase();
-    const aCodecOk = aCodecsExp.some(c => aCodec.includes(c));
-    add('Аудио', 'Аудиокодек', aCodecOk ? 'pass' : 'fail', aCodecsExp.join(', '), audio.Format || '—');
-    const abrMin = parseFloat(getCfg('cfgABitrate'));
-    const aBR = (parseFloat(audio.BitRate) || 0) / 1000;
-    add('Аудио', 'Битрейт аудио', aBR > abrMin ? 'pass' : 'fail', `> ${abrMin} кбит/с`, `${aBR.toFixed(0)} кбит/с`);
-    const chExp = parseInt(getCfg('cfgAChans'));
-    const totalCh = audioTracks.reduce((s, t) => s + (parseInt(t.Channels)||0), 0);
-    add('Аудио', 'Каналов в файле', totalCh === chExp ? 'pass' : 'fail', chExp, totalCh);
-    add('Аудио', 'Каналов в дорожке', parseInt(audio.Channels) === chExp ? 'pass' : 'fail', chExp, audio.Channels);
-    const layout = audio.ChannelLayout || (parseInt(audio.Channels)===2 ? 'L R' : '—');
-    add('Аудио', 'Схема каналов', layout.includes('L') && layout.includes('R') ? 'pass' : 'warn', 'L R', layout);
-    const srExp = parseInt(getCfg('cfgASampleRate'));
-    add('Аудио', 'Частота дискретизации', parseInt(audio.SamplingRate) === srExp ? 'pass' : 'fail', srExp, audio.SamplingRate);
-    const abdExp = parseInt(getCfg('cfgABitDepth'));
-    const abdAct = parseInt(audio.BitDepth);
-    add('Аудио', 'Битовая глубина аудио',
-        abdAct === abdExp ? 'pass' : (isNaN(abdAct) ? 'skip' : 'fail'),
-        `${abdExp} бит`, `${audio.BitDepth || '—'} бит`);
-  }
-  
-  // Громкость
-  if (loudness) {
-    const lufsTarget = parseFloat(getCfg('cfgLufs'));
-    const lufsTol = parseFloat(getCfg('cfgLufsTol'));
-    const tpMax = parseFloat(getCfg('cfgTruePeak'));
-    const lraRange = parseRange(getCfg('cfgLra'));
-    const lufsOk = isFinite(loudness.integrated) && Math.abs(loudness.integrated - lufsTarget) <= lufsTol;
-    const sourceTag = loudness.source ='[Web Audio]';
-    add('Громкость (EBU R128)', `LUFS Integrated (I) ${sourceTag}`, lufsOk ? 'pass' : 'fail',
-        `${lufsTarget} ± ${lufsTol} LUFS`,
-        isFinite(loudness.integrated) ? `${loudness.integrated.toFixed(2)} LUFS` : 'тишина');
-    const tpOk = isFinite(loudness.truePeak) ? loudness.truePeak <= tpMax : true;
-    add('Громкость (EBU R128)', 'True Peak (max)', tpOk ? 'pass' : 'fail', `≤ ${tpMax} dBTP`,
-        isFinite(loudness.truePeak) ? `${loudness.truePeak.toFixed(2)} dBTP` : '—');
-    const lraOk = loudness.lra >= lraRange.min && loudness.lra <= lraRange.max;
-    add('Громкость (EBU R128)', 'Loudness Range (LRA)', lraOk ? 'pass' : 'warn',
-        `${lraRange.min}…${lraRange.max} LU`, `${loudness.lra.toFixed(2)} LU`);
-    if (isFinite(loudness.shortTermMax)) {
-      add('Громкость (EBU R128)', 'Short-term max (S)', 'pass', '— (информативно)',
-          `${loudness.shortTermMax.toFixed(2)} LUFS`);
-    }
-    if (isFinite(loudness.momentaryMax)) {
-      add('Громкость (EBU R128)', 'Momentary max (M)', 'pass', '— (информативно)',
-          `${loudness.momentaryMax.toFixed(2)} LUFS`);
-    }
-  } else if (loudnessError) {
-    add('Громкость (EBU R128)', 'Анализ', 'skip', '—', 'Не выполнен', `Ошибка: ${loudnessError}`);
-  }
-  
   if (!audioOnlyMode) {
-  // Тайм-код
-  const tcTrack = other.find(t => t.Type === 'Time code') || other[0];
-  const tcExp = getCfg('cfgTimecode');
-  const tcAct = tcTrack?.TimeCode_FirstFrame || general?.TimeCode_FirstFrame || video?.TimeCode_FirstFrame || '—';
-  add('Прочее', 'Начальный тайм-код',
-      tcAct === tcExp ? 'pass' : (tcAct === '—' ? 'skip' : 'warn'), tcExp, tcAct);
+    /* Контейнер */
+    const containerExpected = getCfg('cfgContainer').toUpperCase();
+    const detectedFromFtyp  = (containerInfo?.detected||'').toUpperCase();
+    let containerOk=false, containerActual='—';
+    if (detectedFromFtyp.includes('QUICKTIME')||detectedFromFtyp.includes('MOV')) {
+      containerActual=`MOV (QuickTime, brand: ${containerInfo.brand.trim()})`;
+      containerOk=containerExpected==='MOV';
+    } else if (detectedFromFtyp.includes('MP4')) {
+      containerActual=`MP4 (brand: ${containerInfo.brand.trim()})`;
+      containerOk=containerExpected==='MP4';
+    } else if (detectedFromFtyp==='AVI') { containerActual='AVI'; containerOk=containerExpected==='AVI'; }
+    else if (detectedFromFtyp==='MKV')   { containerActual='MKV'; containerOk=containerExpected==='MKV'; }
+    else { containerActual=`${containerInfo?.detected||general?.Format||'?'}`; containerOk=(general?.Format||'').toUpperCase().includes(containerExpected); }
+    add('Контейнер','Профиль формата',containerOk?'pass':'fail',containerExpected,containerActual,`MediaInfo: "${general?.Format||'—'}", ftyp: "${containerInfo?.brand||'—'}"`, 'ob-container');
+    add('Контейнер','Целостность контейнера','pass','Без ошибок','Файл успешно прочитан','','ob-container');
 
+    /* Видео */
+    if (video) {
+      const codecsExp=parseList(getCfg('cfgVCodec'));
+      const vCodec=(video.Format||'').toUpperCase().replace(/[\s.\-_]/g,'');
+      const codecOk=codecsExp.some(c=>{const cc=c.replace(/[\s.\-_]/g,'');return vCodec.includes(cc)||cc.includes(vCodec);});
+      add('Видео','Видеокодек',codecOk?'pass':'fail',codecsExp.join(', '),video.Format||'—','','ob-meta-video');
+      const resExp=getCfg('cfgResolution'),actRes=`${video.Width}x${video.Height}`;
+      add('Видео','Разрешение',actRes===resExp?'pass':'fail',resExp,actRes,'','ob-meta-video');
+      const fpsExp=parseFloat(getCfg('cfgFps')),fpsAct=parseFloat(video.FrameRate);
+      add('Видео','Кадры в секунду',Math.abs(fpsAct-fpsExp)<0.01?'pass':'fail',fpsExp,fpsAct,'','ob-meta-video');
+      const aspectExp=getCfg('cfgAspect'),aspectActStr=video.DisplayAspectRatio_String||video.DisplayAspectRatio||'—';
+      const aspectNum=parseFloat(video.DisplayAspectRatio),expParts=aspectExp.split(':').map(parseFloat);
+      const expRatio=expParts.length===2?expParts[0]/expParts[1]:NaN;
+      const aspectOk=String(aspectActStr).replace(/\s/g,'')===aspectExp||(!isNaN(expRatio)&&Math.abs(aspectNum-expRatio)<0.01);
+      add('Видео','Соотношение сторон',aspectOk?'pass':'fail',aspectExp,aspectActStr,'','ob-meta-video');
+      const par=video.PixelAspectRatio||1;
+      add('Видео','Соотношение сторон пикселя',Math.abs(parseFloat(par)-1)<0.01?'pass':'fail','1:1',par==1?'1:1':par,'','ob-meta-video');
+      const vbr=parseRange(getCfg('cfgVBitrate')),actBR=(parseFloat(video.BitRate)||0)/1_000_000;
+      add('Видео','Битрейт видео',actBR>=vbr.min&&actBR<=vbr.max?'pass':'fail',`${vbr.min}…${vbr.max} Мбит/с`,`${actBR.toFixed(3)} Мбит/с`,'','ob-meta-video');
+      const scanExp=getCfg('cfgScan'),scanAct=video.ScanType||'Progressive';
+      add('Видео','Тип развёртки',scanAct.toLowerCase()===scanExp.toLowerCase()?'pass':'fail',scanExp,scanAct,'','ob-meta-video');
+      const bdExp=parseInt(getCfg('cfgVBitDepth')),bdAct=parseInt(video.BitDepth);
+      add('Видео','Битовая глубина видео',bdAct===bdExp?'pass':(isNaN(bdAct)?'skip':'fail'),`${bdExp} бит`,`${bdAct||'—'} бит`,'','ob-meta-video');
+      const vTracksExp=parseInt(getCfg('cfgVTracks'));
+      add('Видео','Количество видеодорожек',videoTracks.length===vTracksExp?'pass':'fail',vTracksExp,videoTracks.length,'','ob-meta-video');
+    } else {
+      add('Видео','Видеодорожка','fail','Должна быть','Не найдена','','ob-meta-video');
+    }
   }
-  
-  // Сводка
-  const counts = { pass: 0, warn: 0, fail: 0, skip: 0 };
-  tests.forEach(t => counts[t.status]++);
-  const presetInfo = window.__currentPreset
-    ? `<div style="margin-bottom:12px;padding:10px;background:#eef2ff;border-radius:8px;font-size:13px"><strong>Проверка по пресету:</strong> ${window.__currentPreset.name}<br><span style="color:#6b7a99">${window.__currentPreset.desc}</span></div>`
-    : '';
-  
-  let html = `<div class="card">
-      <h2 style="margin-top:0">📊 Сводка</h2>
-      ${presetInfo}
-      <div class="file-info">
-        <strong>${file.name}</strong><br>
-        Контейнер: <strong>${containerInfo?.detected || '—'}</strong> •
-        MediaInfo: ${general?.Format || '—'} •
-        Длительность: ${formatDuration(general?.Duration)} •
-        Размер: ${(file.size/1024/1024).toFixed(2)} МБ
-      </div>
-      <div class="summary-grid" style="margin-top:16px">
-        <div class="stat"><div class="num">${tests.length}</div><div class="label">Всего тестов</div></div>
-        <div class="stat pass"><div class="num">${counts.pass}</div><div class="label">Успешно</div></div>
-        <div class="stat warn"><div class="num">${counts.warn}</div><div class="label">Предупреждения</div></div>
-        <div class="stat fail"><div class="num">${counts.fail}</div><div class="label">Провалено</div></div>
-        <div class="stat"><div class="num">${counts.skip}</div><div class="label">Пропущено</div></div>
-      </div>
-    </div>`;
-  
-  if (counts.fail > 0) html += renderOTKHelp();
-  
+
+  /* Аудио */
+  if (audio) {
+    const aCodecsExp=parseList(getCfg('cfgACodec')),aCodec=(audio.Format||'').toUpperCase();
+    add('Аудио','Аудиокодек',aCodecsExp.some(c=>aCodec.includes(c))?'pass':'fail',aCodecsExp.join(', '),audio.Format||'—','','ob-meta-audio');
+    const abrMin=parseFloat(getCfg('cfgABitrate')),aBR=(parseFloat(audio.BitRate)||0)/1000;
+    add('Аудио','Битрейт аудио',aBR>abrMin?'pass':'fail',`> ${abrMin} кбит/с`,`${aBR.toFixed(0)} кбит/с`,'','ob-meta-audio');
+    const chExp=parseInt(getCfg('cfgAChans')),totalCh=audioTracks.reduce((s,t)=>s+(parseInt(t.Channels)||0),0);
+    add('Аудио','Каналов в файле',totalCh===chExp?'pass':'fail',chExp,totalCh,'','ob-meta-audio');
+    add('Аудио','Каналов в дорожке',parseInt(audio.Channels)===chExp?'pass':'fail',chExp,audio.Channels,'','ob-meta-audio');
+    const layout=audio.ChannelLayout||(parseInt(audio.Channels)===2?'L R':'—');
+    add('Аудио','Схема каналов',layout.includes('L')&&layout.includes('R')?'pass':'warn','L R',layout,'','ob-meta-audio');
+    const srExp=parseInt(getCfg('cfgASampleRate'));
+    add('Аудио','Частота дискретизации',parseInt(audio.SamplingRate)===srExp?'pass':'fail',srExp,audio.SamplingRate,'','ob-meta-audio');
+    const abdExp=parseInt(getCfg('cfgABitDepth')),abdAct=parseInt(audio.BitDepth);
+    add('Аудио','Битовая глубина аудио',abdAct===abdExp?'pass':(isNaN(abdAct)?'skip':'fail'),`${abdExp} бит`,`${audio.BitDepth||'—'} бит`,'','ob-meta-audio');
+  }
+
+  /* Громкость */
   if (loudness) {
-    const sourceLabel = 'Web Audio API';
-    html += `<div class="card"><h2 style="margin-top:0">🔊 Громкость по EBU R128 / ITU-R BS.1770-4 <small style="font-size:12px;color:#6b7a99;font-weight:normal">(${sourceLabel})</small></h2>
-      <div class="loudness-grid">
-        <div class="loudness-item">
-          <div class="label">LUFS Integrated</div>
-          <div class="value">${isFinite(loudness.integrated) ? loudness.integrated.toFixed(2) : '—'}</div>
-          <div class="desc">Интегральная громкость</div>
-        </div>
-        <div class="loudness-item">
-          <div class="label">True Peak</div>
-          <div class="value">${isFinite(loudness.truePeak) ? loudness.truePeak.toFixed(2) : '—'}</div>
-          <div class="desc">dBTP</div>
-        </div>
-        <div class="loudness-item">
-          <div class="label">LRA</div>
-          <div class="value">${loudness.lra.toFixed(2)}</div>
-          <div class="desc">Loudness Range, LU</div>
-        </div>
-        ${isFinite(loudness.shortTermMax) ? `<div class="loudness-item">
-          <div class="label">Short-term max</div>
-          <div class="value">${loudness.shortTermMax.toFixed(2)}</div>
-          <div class="desc">3 сек, LUFS</div>
-        </div>` : ''}
-        ${isFinite(loudness.momentaryMax) ? `<div class="loudness-item">
-          <div class="label">Momentary max</div>
-          <div class="value">${loudness.momentaryMax.toFixed(2)}</div>
-          <div class="desc">400 мс, LUFS</div>
-        </div>` : ''}
-        ${loudness.sampleRate ? `<div class="loudness-item">
-          <div class="label">Sample Rate</div>
-          <div class="value" style="font-size:18px">${loudness.sampleRate} Hz</div>
-          <div class="desc">${loudness.channels || '?'} канал(а/ов)</div>
-        </div>` : ''}
-      </div>
-    </div>`;
+    const lufsTarget=parseFloat(getCfg('cfgLufs')),lufsTol=parseFloat(getCfg('cfgLufsTol'));
+    const tpMax=parseFloat(getCfg('cfgTruePeak')),lraRange=parseRange(getCfg('cfgLra'));
+    const lufsOk=isFinite(loudness.integrated)&&Math.abs(loudness.integrated-lufsTarget)<=lufsTol;
+    add('Громкость (EBU R128)','LUFS Integrated (I) [Web Audio]',lufsOk?'pass':'fail',`${lufsTarget} ± ${lufsTol} LUFS`,isFinite(loudness.integrated)?`${loudness.integrated.toFixed(2)} LUFS`:'тишина','','ob-audio');
+    add('Громкость (EBU R128)','True Peak (max)',loudness.truePeak<=tpMax?'pass':'fail',`≤ ${tpMax} dBTP`,isFinite(loudness.truePeak)?`${loudness.truePeak.toFixed(2)} dBTP`:'—','','ob-audio');
+    const lraOk=loudness.lra>=lraRange.min&&loudness.lra<=lraRange.max;
+    add('Громкость (EBU R128)','Loudness Range (LRA)',lraOk?'pass':'warn',`${lraRange.min}…${lraRange.max} LU`,`${loudness.lra.toFixed(2)} LU`,'','ob-audio');
+    if(isFinite(loudness.shortTermMax))add('Громкость (EBU R128)','Short-term max (S)','pass','— (информативно)',`${loudness.shortTermMax.toFixed(2)} LUFS`,'','ob-audio');
+    if(isFinite(loudness.momentaryMax))add('Громкость (EBU R128)','Momentary max (M)','pass','— (информативно)',`${loudness.momentaryMax.toFixed(2)} LUFS`,'','ob-audio');
   } else if (loudnessError) {
-    html += `<div class="card"><h2 style="margin-top:0">🔊 Громкость</h2>
+    add('Громкость (EBU R128)','Анализ','skip','—','Не выполнен',`Ошибка: ${loudnessError}`,'ob-audio');
+  }
+
+  /* Тайм-код */
+  if (!audioOnlyMode) {
+    const tcTrack=other.find(t=>t.Type==='Time code')||other[0];
+    const tcExp=getCfg('cfgTimecode');
+    const tcAct=tcTrack?.TimeCode_FirstFrame||general?.TimeCode_FirstFrame||video?.TimeCode_FirstFrame||'—';
+    add('Прочее','Начальный тайм-код',tcAct===tcExp?'pass':(tcAct==='—'?'skip':'warn'),tcExp,tcAct,'','ob-other-meta');
+  }
+
+  /* Сводка */
+  const counts={pass:0,warn:0,fail:0,skip:0};
+  tests.forEach(t=>counts[t.status]++);
+  const presetInfo = window.__currentPreset
+    ? `<div style="margin-bottom:12px;padding:10px;background:#eef2ff;border-radius:8px;font-size:13px"><strong>Проверка по пресету:</strong> ${window.__currentPreset.name}<br><span style="color:var(--vq-muted)">${window.__currentPreset.desc}</span></div>`
+    : '';
+
+  let html = `<div class="vq-card">
+    <h2 style="margin-top:0">📊 Сводка</h2>
+    ${presetInfo}
+    <div class="vq-file-info">
+      <strong>${file.name}</strong><br>
+      Контейнер: <strong>${containerInfo?.detected||'—'}</strong> •
+      MediaInfo: ${general?.Format||'—'} •
+      Длительность: ${formatDuration(general?.Duration)} •
+      Размер: ${(file.size/1024/1024).toFixed(2)} МБ
+    </div>
+    <div class="vq-summary-grid" style="margin-top:16px">
+      <div class="vq-stat"><div class="num">${tests.length}</div><div class="label">Всего тестов</div></div>
+      <div class="vq-stat pass"><div class="num">${counts.pass}</div><div class="label">Успешно</div></div>
+      <div class="vq-stat warn"><div class="num">${counts.warn}</div><div class="label">Предупреждения</div></div>
+      <div class="vq-stat fail"><div class="num">${counts.fail}</div><div class="label">Провалено</div></div>
+      <div class="vq-stat"><div class="num">${counts.skip}</div><div class="label">Пропущено</div></div>
+    </div>
+    ${counts.fail>0?`<div style="margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:8px;font-size:13px;color:#78350f">
+      💡 Не знаете что означает ошибка?
+      <a href="#" onclick="switchScreen('ref');return false;" style="color:#4a6cf7;font-weight:700;margin-left:4px">Открыть справочник тестов →</a>
+    </div>`:''}
+  </div>`;
+
+  if (counts.fail > 0) html += renderOTKHelp();
+
+  if (loudness) {
+    html += `<div class="vq-card"><h2 style="margin-top:0">🔊 Громкость по EBU R128 / ITU-R BS.1770-4 <small style="font-size:12px;color:var(--vq-muted);font-weight:normal">(Web Audio API)</small></h2>
+      <div class="vq-loudness-grid">
+        <div class="vq-loudness-item"><div class="label">LUFS Integrated</div><div class="value">${isFinite(loudness.integrated)?loudness.integrated.toFixed(2):'—'}</div><div class="desc">Интегральная громкость</div></div>
+        <div class="vq-loudness-item"><div class="label">True Peak</div><div class="value">${isFinite(loudness.truePeak)?loudness.truePeak.toFixed(2):'—'}</div><div class="desc">dBTP</div></div>
+        <div class="vq-loudness-item"><div class="label">LRA</div><div class="value">${loudness.lra.toFixed(2)}</div><div class="desc">Loudness Range, LU</div></div>
+        ${isFinite(loudness.shortTermMax)?`<div class="vq-loudness-item"><div class="label">Short-term max</div><div class="value">${loudness.shortTermMax.toFixed(2)}</div><div class="desc">3 сек, LUFS</div></div>`:''}
+        ${isFinite(loudness.momentaryMax)?`<div class="vq-loudness-item"><div class="label">Momentary max</div><div class="value">${loudness.momentaryMax.toFixed(2)}</div><div class="desc">400 мс, LUFS</div></div>`:''}
+        ${loudness.sampleRate?`<div class="vq-loudness-item"><div class="label">Sample Rate</div><div class="value" style="font-size:18px">${loudness.sampleRate} Hz</div><div class="desc">${loudness.channels||'?'} канал(а/ов)</div></div>`:''}
+      </div></div>`;
+  } else if (loudnessError) {
+    html += `<div class="vq-card"><h2 style="margin-top:0">🔊 Громкость</h2>
       <p style="color:#dc2626"><strong>Не удалось проанализировать:</strong> ${loudnessError}</p>
-      <details style="margin-top:12px">
-        <summary style="cursor:pointer;color:#6b7a99">Возможные причины и решения</summary>
-        <ul style="color:#6b7a99;font-size:13px;margin-top:8px">
+      <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--vq-muted)">Возможные причины и решения</summary>
+        <ul style="color:var(--vq-muted);font-size:13px;margin-top:8px">
           <li>Файл на сетевом диске — скопируйте локально на SSD</li>
           <li>Файл открыт в другой программе (Premiere/DaVinci) — закройте</li>
           <li>Антивирус блокирует чтение — добавьте папку в исключения</li>
           <li>Кодек не поддерживается — попробуйте перекодировать звук в AAC/WAV</li>
           <li>Файл повреждён — проверьте в плеере</li>
-        </ul>
-      </details>
-    </div>`;
+        </ul></details></div>`;
   }
-  
-  const cats = [...new Set(tests.map(t => t.cat))];
+
+  const cats = [...new Set(tests.map(t=>t.cat))];
   for (const cat of cats) {
-    html += `<div class="card"><h3 style="margin-top:0">${cat}</h3><table>
+    html += `<div class="vq-card"><h3 style="margin-top:0">${cat}</h3><table class="vq-table">
       <thead><tr><th>Тест</th><th>Ожидается</th><th>Фактически</th><th>Статус</th></tr></thead><tbody>`;
-    for (const t of tests.filter(x => x.cat === cat)) {
-      const labelMap = { pass:'Успешно', warn:'Предупреждение', fail:'Провалено', skip:'Пропущено' };
+    for (const t of tests.filter(x=>x.cat===cat)) {
+      const lm={pass:'Успешно',warn:'Предупреждение',fail:'Провалено',skip:'Пропущено'};
+      const refBtn = t.refAnchor
+        ? `<a class="to-ref-btn" href="#${t.refAnchor}" onclick="switchScreen('ref');setTimeout(()=>{document.getElementById('${t.refAnchor}')?.scrollIntoView({behavior:'smooth'})},100);return false;">📖 Справочник</a>`
+        : '';
       html += `<tr>
-        <td>${t.name}${t.note ? `<br><small style="color:#9ca3af">${t.note}</small>` : ''}</td>
-        <td style="color:#6b7a99">${t.exp}</td>
+        <td>${t.name}${refBtn}${t.note?`<br><small style="color:#9ca3af">${t.note}</small>`:''}</td>
+        <td style="color:var(--vq-muted)">${t.exp}</td>
         <td><strong>${t.act}</strong></td>
-        <td><span class="badge ${t.status}">${labelMap[t.status]}</span></td>
+        <td><span class="vq-badge ${t.status}">${lm[t.status]}</span></td>
       </tr>`;
     }
     html += `</tbody></table></div>`;
   }
-  html += `<div class="card"><details><summary>🔍 Полные метаданные (raw JSON)</summary>
-    <pre>${escapeHtml(JSON.stringify({ container: containerInfo, mediainfo: data, loudness }, null, 2))}</pre></details></div>`;
+
+  html += `<div class="vq-card"><details><summary>🔍 Полные метаданные (raw JSON)</summary>
+    <pre>${escapeHtml(JSON.stringify({container:containerInfo,mediainfo:data,loudness},null,2))}</pre></details></div>`;
   results.innerHTML = html;
 }
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function formatDuration(sec) {
-  if (!sec) return '—';
-  const s = parseFloat(sec);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const ss = (s % 60).toFixed(2);
-  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${ss.padStart(5,'0')}`;
-}
+/* ══════════════════════════════════════════════════════
+   СПРАВОЧНИК: ПОИСК
+══════════════════════════════════════════════════════ */
+document.getElementById('obSearchInput').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  document.querySelectorAll('#ob-all-tests .ob-test-row').forEach(row => {
+    const text = row.dataset.search + ' ' + (row.querySelector('.ob-test-name')?.textContent||'').toLowerCase();
+    row.classList.toggle('hidden', !!q && !text.includes(q));
+  });
+  document.querySelectorAll('#ob-all-tests .ob-section').forEach(sec => {
+    const visible = sec.querySelectorAll('.ob-test-row:not(.hidden)').length;
+    sec.style.display = (q && !visible) ? 'none' : '';
+  });
+});
+
+/* ⌘K — фокус на поиск справочника */
+document.addEventListener('keydown', e => {
+  if ((e.metaKey||e.ctrlKey) && e.key==='k') {
+    e.preventDefault();
+    if (document.getElementById('screen-ref').style.display !== 'none') {
+      const inp = document.getElementById('obSearchInput');
+      inp.focus(); inp.select();
+    }
+  }
+});
+
+/* СПРАВОЧНИК: подсветка активного таба при скролле */
+const obSections = document.querySelectorAll('#ob-all-tests .ob-section');
+const obTabLinks = document.querySelectorAll('#obTabs .ob-tab');
+const obIO = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      obTabLinks.forEach(t=>t.classList.remove('active'));
+      const tab = document.querySelector(`#obTabs .ob-tab[href="#${e.target.id}"]`);
+      if (tab) tab.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+obSections.forEach(s => obIO.observe(s));
 </script>
+
 </body>
 </html>
